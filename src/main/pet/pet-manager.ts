@@ -95,9 +95,25 @@ export class PetManager {
   }
 
   /** Cập nhật settings */
-  async updateSettings(newSettings: Partial<UserSettings>): Promise<void> {
+  async updateSettings(newSettings: Partial<any>): Promise<void> {
     this.settings = { ...this.settings, ...newSettings };
-    console.log('PetManager: Settings updated:', newSettings);
+    await this.saveSettings();
+    
+    // Notify all windows
+    this.overlayWindow?.getWindow()?.webContents.send('settings:updated', {
+      settings: this.settings,
+      activePet: await this.getActivePet()
+    });
+    this.settingsWindow?.getWindow()?.webContents.send('settings:updated', {
+      settings: this.settings,
+      activePet: await this.getActivePet()
+    });
+  }
+
+  /** Update current window position */
+  async updatePosition(x: number, y: number): Promise<void> {
+    this.settings.lastX = x;
+    this.settings.lastY = y;
     await this.saveSettings();
   }
 

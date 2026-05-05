@@ -73,6 +73,10 @@ export function registerIpcHandlers(petManager: PetManager): void {
     }
   });
 
+  ipcMain.on('window:save-position', (_event, x: number, y: number) => {
+    petManager.updatePosition(x, y);
+  });
+
   ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
     // To be handled by main.ts or separate handler in Task 8
   });

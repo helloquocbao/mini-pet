@@ -20,8 +20,8 @@ export class PetStateMachine {
 
   // State rules cho Pet "Lười"
   private rules: Partial<Record<PetState, StateRule>> = {
-    idle: { minDuration: 10000, maxDuration: 30000, transitions: ['sleep'] },
-    walk: { minDuration: 5000, maxDuration: 10000, transitions: ['idle'] }, // Đi bộ lâu hơn (5-10 giây)
+    idle: { minDuration: 15000, maxDuration: 40000, transitions: ['sleep', 'walk'] },
+    walk: { minDuration: 5000, maxDuration: 20000, transitions: ['idle'] }, // Đi bộ lâu hơn (5-20 giây)
     sleep: { minDuration: 20000, maxDuration: 60000, transitions: ['idle'] },
   };
 
@@ -37,6 +37,8 @@ export class PetStateMachine {
 
   setWalkingEnabled(enabled: boolean): void {
     this.enableWalking = enabled;
+    this.controller.setWalkingEnabled(enabled);
+
     // Nếu đang đi mà bị tắt, chuyển ngay về đứng im
     if (!enabled && this.currentState === 'walk') {
       this.transitionTo('idle');

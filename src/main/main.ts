@@ -40,8 +40,9 @@ app.whenReady().then(async () => {
   });
 
   // 3. Create windows
+  const settings = await petManager.getSettings();
   overlayWindow = new OverlayWindow();
-  overlayWindow.create();
+  overlayWindow.create(settings.lastX, settings.lastY);
 
   settingsWindow = new SettingsWindow();
 

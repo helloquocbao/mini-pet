@@ -16,11 +16,16 @@ export class AnimationController {
   private posX: number = 0; // Không còn dùng nhưng giữ để tránh lỗi compile nếu có chỗ gọi
   private posY: number = 0; // Không còn dùng nhưng giữ để tránh lỗi compile nếu có chỗ gọi
   private direction: number = 1; // 1: Right, -1: Left
+  private walkingEnabled: boolean = true;
 
   public onAnimationEnd?: (nextState: PetState) => void;
 
   constructor(renderer: SpriteRenderer) {
     this.renderer = renderer;
+  }
+
+  setWalkingEnabled(enabled: boolean): void {
+    this.walkingEnabled = enabled;
   }
 
   /** Play animation cho state cụ thể */
@@ -64,7 +69,7 @@ export class AnimationController {
   private draw(): void {
     if (!this.currentConfig) return;
     const activeRow = this.currentConfig.row;
-    const shouldFlip = activeRow !== 1 && activeRow !== 2 && this.direction === -1;
+    const shouldFlip = this.direction === -1;
 
     this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
   }
@@ -96,27 +101,34 @@ export class AnimationController {
 
       // 1. Update Window Movement
       const isMovementRow = [1, 2, 7].includes(this.currentConfig.row);
+      // 1. Logic di chuyển cửa sổ (nếu đang walk)
+      const isMovementAnimation = this.currentConfig.canMove || [1, 2, 7].includes(this.currentConfig.row);
+      
+      if (isMovementAnimation && this.isPlaying) {
+        const speed = (this.currentConfig.speed || 1.5) * this.scale;
+        
+        // CHỈ DI CHUYỂN CỬA SỔ NẾU ENABLE WALKING ĐƯỢC BẬT
+        if (this.walkingEnabled && window.electronAPI && window.electronAPI.moveWindow) {
+          // KIỂM TRA BIÊN MÀN HÌNH ĐỂ QUAY ĐẦU
+          const winX = window.screenX;
+          const screenW = window.screen.availWidth;
+          const winW = window.innerWidth;
 
-      if (isMovementRow) {
-        let speed = this.currentConfig.row === 7 ? 4.5 : 1.5;
+          if ((this.direction === -1 && winX <= 0) || 
+              (this.direction === 1 && winX + winW >= screenW)) {
+            this.direction *= -1;
+          }
 
-        if (this.currentConfig.row === 2) {
-          this.direction = -1;
-          activeRow = 2;
-        } else if (this.currentConfig.row === 1) {
-          if (this.direction === -1) activeRow = 2;
-          else activeRow = 1;
-        }
-
-        // DI CHUYỂN CẢ CỬA SỔ
-        if (window.electronAPI && window.electronAPI.moveWindow) {
           window.electronAPI.moveWindow(speed * this.direction, 0);
+          
+          // Luôn lưu vị trí để nhớ tọa độ
+          window.electronAPI.savePosition(window.screenX, window.screenY);
         }
       }
 
       // 2. Render
       if (this.currentConfig) {
-        const shouldFlip = activeRow !== 1 && activeRow !== 2 && this.direction === -1;
+        const shouldFlip = this.direction === -1;
         this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
       }
 

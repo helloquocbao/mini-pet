@@ -6,21 +6,21 @@ export class OverlayWindow {
   private window: BrowserWindow | null = null;
 
   /** Tạo và hiển thị overlay window */
-  create(): void {
+  create(initialX?: number, initialY?: number): void {
     const { workArea } = screen.getPrimaryDisplay();
 
-    const x = workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH - 100;
-    const y = workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT - 100;
+    const x = initialX !== undefined ? initialX : workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH - 100;
+    const y = initialY !== undefined ? initialY : workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT - 100;
 
     this.window = new BrowserWindow({
       width: OVERLAY_WINDOW.WIDTH,
       height: OVERLAY_WINDOW.HEIGHT,
       x,
       y,
-      transparent: true, // Bật lại trong suốt
-      frame: false, // Ẩn khung
+      transparent: true,
+      frame: false,
       alwaysOnTop: true,
-      skipTaskbar: true, // Ẩn khỏi taskbar
+      skipTaskbar: true,
       resizable: false,
       focusable: false,
       hasShadow: false,

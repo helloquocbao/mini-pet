@@ -46,6 +46,7 @@ async function init(): Promise<void> {
 
   const controller = new AnimationController(renderer);
   const stateMachine = new PetStateMachine(controller, initialScale, isWalkingEnabled);
+  controller.setWalkingEnabled(isWalkingEnabled);
   stateMachine.start();
 
   // 5. Lắng nghe cập nhật cài đặt thời gian thực
@@ -57,6 +58,7 @@ async function init(): Promise<void> {
     // 1. Cập nhật scale và walking cho cả não và bộ điều khiển
     stateMachine.setScale(settings.scale);
     stateMachine.setWalkingEnabled(settings.enableWalking);
+    controller.setWalkingEnabled(settings.enableWalking);
 
     // 2. Chỉ nạp lại spritesheet nếu con Pet thực sự bị thay đổi (slug khác nhau)
     // HOẶC nếu ảnh hiện tại chưa được load thành công
@@ -124,6 +126,9 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       stateMachine.transitionTo('idle');
       // Thả ra thì cho xuyên thấu
       window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+
+      // LƯU VỊ TRÍ SAU KHI KÉO
+      window.electronAPI.savePosition(window.screenX, window.screenY);
     }
   });
 
