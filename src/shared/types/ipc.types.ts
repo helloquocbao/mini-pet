@@ -1,0 +1,33 @@
+/** IPC Channel names — dùng enum để tránh typo */
+export const IPC_CHANNELS = {
+  // Pet management
+  PET_GET_LIST: 'pet:get-list',
+  PET_GET_ACTIVE: 'pet:get-active',
+  PET_SET_ACTIVE: 'pet:set-active',
+  PET_LOAD_SPRITESHEET: 'pet:load-spritesheet',
+  PET_IMPORT: 'pet:import',
+
+  // Settings
+  SETTINGS_GET: 'settings:get',
+  SETTINGS_UPDATE: 'settings:update',
+
+  // Window control
+  WINDOW_SET_IGNORE_MOUSE: 'window:set-ignore-mouse',
+  WINDOW_OPEN_SETTINGS: 'window:open-settings',
+
+  // Notifications (Phase 2)
+  NOTIFICATION_NEW: 'notification:new',
+  NOTIFICATION_DISMISS: 'notification:dismiss',
+} as const;
+
+export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
+
+/** Notification payload (Phase 2) */
+export interface NotificationPayload {
+  id: string;
+  appName: string;
+  title: string;
+  body: string;
+  timestamp: number;
+  iconPath?: string;
+}

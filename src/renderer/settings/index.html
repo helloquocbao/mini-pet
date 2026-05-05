@@ -1,0 +1,55 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>MiniPet Settings</title>
+    <link rel="stylesheet" href="./settings.css" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div class="settings-container">
+      <header class="settings-header">
+        <h1>🐾 MiniPet</h1>
+        <p class="subtitle">Desktop Pet Companion</p>
+      </header>
+
+      <!-- Pet Gallery -->
+      <section class="section">
+        <h2>Choose Your Pet</h2>
+        <div id="pet-gallery" class="pet-gallery">
+          <!-- Populated by JS -->
+        </div>
+      </section>
+
+      <!-- Preferences -->
+      <section class="section">
+        <h2>Preferences</h2>
+        <div class="settings-form">
+          <div class="setting-item">
+            <label>Pet Size</label>
+            <div class="range-container">
+              <input type="range" id="scale-range" min="0.5" max="2.0" step="0.1" value="1.0" />
+              <span id="scale-value">1.0x</span>
+            </div>
+          </div>
+
+          <div class="setting-item-column">
+            <div class="setting-item">
+              <label>Enable Walking</label>
+              <label class="switch">
+                <input type="checkbox" id="walk-toggle" checked />
+                <span class="slider round"></span>
+              </label>
+            </div>
+            <p class="setting-hint">Allow your pet to wander around the screen on its own.</p>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <script type="module" src="./settings.ts"></script>
+  </body>
+</html>

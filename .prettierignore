@@ -1,0 +1,7 @@
+node_modules
+dist
+out
+.cache
+.gemini
+package-lock.json
+public
