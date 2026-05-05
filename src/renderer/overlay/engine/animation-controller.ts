@@ -11,12 +11,12 @@ export class AnimationController {
   private lastFrameTime: number = 0;
   private animationId: number = 0;
   private isPlaying: boolean = false;
-  private scale: number = 1.0;
-
-  private posX: number = 0; // Không còn dùng nhưng giữ để tránh lỗi compile nếu có chỗ gọi
-  private posY: number = 0; // Không còn dùng nhưng giữ để tránh lỗi compile nếu có chỗ gọi
-  private direction: number = 1; // 1: Right, -1: Left
   private walkingEnabled: boolean = true;
+  private scale: number = 1.0;
+  private direction: number = 1; // 1: Right, -1: Left
+
+  // Tích lũy phần dư để di chuyển mượt ở tốc độ thấp
+  private accumulatedX: number = 0;
 
   public onAnimationEnd?: (nextState: PetState) => void;
 
@@ -26,6 +26,12 @@ export class AnimationController {
 
   setWalkingEnabled(enabled: boolean): void {
     this.walkingEnabled = enabled;
+  }
+
+  /** Cập nhật scale từ bên ngoài */
+  setScale(scale: number): void {
+    this.scale = scale;
+    this.draw(); // Vẽ lại ngay lập tức với scale mới
   }
 
   /** Play animation cho state cụ thể */
@@ -42,20 +48,6 @@ export class AnimationController {
 
     this.loop();
   }
-
-  /** Cập nhật scale và resize cửa sổ vừa khít */
-  setScale(scale: number): void {
-    this.scale = scale;
-    const w = Math.round(192 * scale);
-    const h = Math.round(208 * scale);
-
-    if (window.electronAPI && window.electronAPI.resizeWindow) {
-      window.electronAPI.resizeWindow(w, h);
-    }
-  }
-
-  /** Reset position (không còn dùng vì di chuyển bằng window) */
-  resetPosition(): void {}
 
   /** Stop animation */
   stop(): void {
@@ -74,19 +66,6 @@ export class AnimationController {
     this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
   }
 
-  /** Lấy vùng bao quanh Pet (Vừa khít cửa sổ mới) */
-  getRect(): { x: number; y: number; width: number; height: number } {
-    const w = 192 * this.scale;
-    const h = 208 * this.scale;
-    // Vì cửa sổ đã được resize vừa khít, Pet luôn chiếm trọn 100% cửa sổ
-    return {
-      x: 0,
-      y: 0,
-      width: w,
-      height: h,
-    };
-  }
-
   /** Internal animation loop */
   private loop = (): void => {
     if (!this.isPlaying || !this.currentConfig) return;
@@ -97,18 +76,13 @@ export class AnimationController {
     if (now - this.lastFrameTime >= msPerFrame) {
       this.lastFrameTime = now;
 
-      let activeRow = this.currentConfig.row;
-
-      // 1. Update Window Movement
-      const isMovementRow = [1, 2, 7].includes(this.currentConfig.row);
       // 1. Logic di chuyển cửa sổ (nếu đang walk)
       const isMovementAnimation = this.currentConfig.canMove || [1, 2, 7].includes(this.currentConfig.row);
       
-      if (isMovementAnimation && this.isPlaying) {
-        const speed = (this.currentConfig.speed || 1.5) * this.scale;
+      if (isMovementAnimation && this.isPlaying && this.walkingEnabled) {
+        const speed = (this.currentConfig.speed || 0.9) * this.scale;
         
-        // CHỈ DI CHUYỂN CỬA SỔ NẾU ENABLE WALKING ĐƯỢC BẬT
-        if (this.walkingEnabled && window.electronAPI && window.electronAPI.moveWindow) {
+        if (window.electronAPI && window.electronAPI.moveWindow) {
           // KIỂM TRA BIÊN MÀN HÌNH ĐỂ QUAY ĐẦU
           const winX = window.screenX;
           const screenW = window.screen.availWidth;
@@ -117,20 +91,25 @@ export class AnimationController {
           if ((this.direction === -1 && winX <= 0) || 
               (this.direction === 1 && winX + winW >= screenW)) {
             this.direction *= -1;
+            this.accumulatedX = 0; // Reset tích lũy khi đổi chiều
           }
 
-          window.electronAPI.moveWindow(speed * this.direction, 0);
-          
-          // Luôn lưu vị trí để nhớ tọa độ
-          window.electronAPI.savePosition(window.screenX, window.screenY);
+          // Tích lũy phần dư (speed * direction)
+          this.accumulatedX += speed * this.direction;
+
+          // Thực hiện di chuyển khi tích lũy đủ >= 1 pixel
+          const actualMoveX = Math.trunc(this.accumulatedX);
+          if (Math.abs(actualMoveX) >= 1) {
+            window.electronAPI.moveWindow(actualMoveX, 0);
+            this.accumulatedX -= actualMoveX;
+            // Lưu vị trí để nhớ tọa độ
+            window.electronAPI.savePosition(window.screenX, window.screenY);
+          }
         }
       }
 
       // 2. Render
-      if (this.currentConfig) {
-        const shouldFlip = this.direction === -1;
-        this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
-      }
+      this.draw();
 
       // 3. Advance frame
       if (this.currentConfig.loop) {

@@ -8,18 +8,16 @@ import { PetStateMachine } from './engine/pet-state-machine';
 import { PETDEX_SPRITE } from '../../shared/constants';
 
 let isAlarming = false;
+let currentScale = 1.0;
+let isSpeechVisible = false;
+let speechTimeout: any = null;
 
 async function init(): Promise<void> {
   const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
 
   // 1. Lấy active pet data từ main process
   const petData: any = await window.electronAPI.getActivePet();
-  console.log('Renderer: Active Pet Data received:', petData);
-
-  if (!petData) {
-    console.error('Renderer: No active pet data found!');
-    return;
-  }
+  if (!petData) return;
 
   // 2. Khởi tạo renderer
   const renderer = new SpriteRenderer(
@@ -31,19 +29,15 @@ async function init(): Promise<void> {
   // 3. Load spritesheet
   if (petData?.spritesheetPath) {
     try {
-      console.log('Renderer: Loading spritesheet from:', petData.spritesheetPath);
       await renderer.loadSpritesheet(petData.spritesheetPath);
-      console.log('Renderer: Spritesheet loaded successfully!');
     } catch (err) {
       console.error('Renderer: Failed to load spritesheet:', err);
     }
-  } else {
-    console.warn('Renderer: No spritesheet path provided in petData');
   }
 
-  // 4. Khởi tạo animation — dùng scale và walking đã lưu trong settings
+  // 4. Khởi tạo animation
   const savedSettings: any = await window.electronAPI.getSettings();
-  const initialScale = savedSettings?.scale || 1.0;
+  const initialScale = Number(savedSettings?.scale) || 1.0;
   const isWalkingEnabled = savedSettings?.enableWalking !== false;
 
   const controller = new AnimationController(renderer);
@@ -51,12 +45,16 @@ async function init(): Promise<void> {
   controller.setWalkingEnabled(isWalkingEnabled);
   stateMachine.start();
 
-  // Lắng nghe lệnh Ping (để pet nhảy lên)
+  currentScale = initialScale;
+
+  // Khởi tạo kích thước cửa sổ
+  syncWindowSize();
+
+  // --- Events ---
   window.electronAPI.onPing(() => {
     stateMachine.notify();
     showSpeech(getRandomPingSpeech());
   });
-
 
   window.electronAPI.onStartAlarm(() => {
     isAlarming = true;
@@ -68,50 +66,38 @@ async function init(): Promise<void> {
     stateMachine.stopAlarm();
   });
 
-  // Lắng nghe Pomodoro kết thúc để hiện lời nhắn
   window.electronAPI.onPomoTick((state: any) => {
     if (state.finished) {
-      if (!state.isWorkSession) {
-        showSpeech('Hết giờ tập trung! Nghỉ ngơi thôi sen ơi! 🐾', 30000); // Hiện lâu (30s)
-      } else {
-        showSpeech('Hết giờ nghỉ rồi! Quay lại làm việc thôi! 💪', 30000);
-      }
+      showSpeech(state.isWorkSession ? 'Nghỉ ngơi thôi sen ơi! 🐾' : 'Quay lại làm việc thôi! 💪', 30000);
     }
   });
 
-  // 7. Vòng lặp lời thoại ngẫu nhiên
   setupRandomSpeech(stateMachine);
 
-  // 5. Lắng nghe cập nhật cài đặt thời gian thực
+  // 5. Settings update
   let currentPetSlug = petData?.slug;
 
   window.electronAPI.onSettingsUpdate(async (data: any) => {
     const { settings, activePet } = data;
 
-    // 1. Cập nhật scale và walking cho cả não và bộ điều khiển
-    stateMachine.setScale(settings.scale);
+    currentScale = Number(settings.scale) || 1.0;
+    stateMachine.setScale(currentScale);
     stateMachine.setWalkingEnabled(settings.enableWalking);
     controller.setWalkingEnabled(settings.enableWalking);
 
-    // 2. Chỉ nạp lại spritesheet nếu con Pet thực sự bị thay đổi (slug khác nhau)
-    // HOẶC nếu ảnh hiện tại chưa được load thành công
-    if (settings.activePetSlug !== currentPetSlug) {
-      console.log('Renderer: Attempting to switch pet to', settings.activePetSlug);
+    // Cập nhật kích thước cửa sổ - Vì là Top-aligned nên cực kỳ mượt!
+    syncWindowSize();
 
-      if (activePet) {
-        try {
-          await renderer.loadSpritesheet(activePet.spritesheetPath);
-          console.log('Renderer: Successfully switched to pet', settings.activePetSlug);
-          currentPetSlug = settings.activePetSlug; // Chỉ cập nhật slug khi load THÀNH CÔNG
-        } catch (err) {
-          console.error('Renderer: Failed to load spritesheet for', settings.activePetSlug, err);
-          // Không cập nhật currentPetSlug để người dùng có thể bấm lại
-        }
+    if (settings.activePetSlug !== currentPetSlug && activePet) {
+      try {
+        await renderer.loadSpritesheet(activePet.spritesheetPath);
+        currentPetSlug = settings.activePetSlug;
+      } catch (err) {
+        console.error('Failed to switch pet:', err);
       }
     }
   });
 
-  // 5. Mouse interaction cho click-through toggle
   setupMouseInteraction(canvas, stateMachine);
 }
 
@@ -121,12 +107,10 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   let startX = 0;
   let startY = 0;
 
-  // 1. Khi chuột đi vào vùng Canvas (là vùng Pet): Tắt xuyên thấu
   canvas.addEventListener('mouseenter', () => {
     window.electronAPI.setIgnoreMouseEvents(false);
   });
 
-  // 2. Xử lý Kéo thả
   canvas.addEventListener('mousedown', e => {
     if (e.button === 0) {
       isDragging = true;
@@ -137,16 +121,11 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     }
   });
 
-  // Window mousemove để xử lý di chuyển khi đang kéo
   window.addEventListener('mousemove', e => {
     if (isDragging) {
       const deltaX = e.screenX - startX;
       const deltaY = e.screenY - startY;
-
-      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-        wasDragged = true;
-      }
-
+      if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) wasDragged = true;
       startX = e.screenX;
       startY = e.screenY;
       window.electronAPI.moveWindow(deltaX, deltaY);
@@ -157,32 +136,49 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     if (isDragging) {
       isDragging = false;
       stateMachine.transitionTo('idle');
-      // Thả ra thì cho xuyên thấu
-      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-
-      // LƯU VỊ TRÍ SAU KHI KÉO
       window.electronAPI.savePosition(window.screenX, window.screenY);
     }
   });
 
+  let clickCount = 0;
+  let clickTimer: any = null;
+
   canvas.addEventListener('click', () => {
     if (isAlarming) {
       window.electronAPI.stopAlarm();
-      // Ẩn speech bubble ngay lập tức khi click
-      const bubble = document.getElementById('speech-bubble');
-      if (bubble) bubble.classList.remove('visible');
+      hideSpeech();
       return;
     }
 
-    if (!wasDragged) {
-      // Chỉ cho đi bộ nếu tính năng này đang bật
+    if (wasDragged) return;
+
+    clickCount++;
+    if (clickTimer) clearTimeout(clickTimer);
+    console.log(`Renderer: Click detected. Count: ${clickCount}`);
+
+    // Phản hồi tức thì cho từng số lần click (Quy ước: Click 1 -> Dòng 4, Click 2 -> Dòng 5, Click 3+ -> Dòng 8)
+    if (clickCount === 1) {
+      stateMachine.forceState('happy'); // Dòng 4 (Row 3)
+      showSpeech('Chào sen nhé! 👋');
+    } else if (clickCount === 2) {
+      stateMachine.forceState('jump'); // Dòng 5 (Row 4)
+      showSpeech('Vận động tí cho khỏe! 🐾');
+    } else if (clickCount >= 3) {
       if (stateMachine.getWalkingEnabled()) {
-        stateMachine.forceState('walk');
+        stateMachine.forceState('run'); // Dòng 8 (Row 7)
+        showSpeech('Chạy đi chờ chi! 🏃‍♂️');
       } else {
-        // Nếu tắt đi bộ, click vào chỉ làm nó vui vẻ (happy) rồi đứng im
         stateMachine.forceState('happy');
+        showSpeech('Tính năng di chuyển đang tắt!');
       }
     }
+
+    // Timer chỉ dùng để reset bộ đếm sau khi người dùng ngừng click
+    clickTimer = setTimeout(() => {
+      console.log(`Renderer: Click sequence finished. Final count: ${clickCount}`);
+      clickCount = 0;
+      clickTimer = null;
+    }, 600);
   });
 
   canvas.addEventListener('contextmenu', e => {
@@ -191,55 +187,86 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   });
 }
 
-// Boot
-init().catch(console.error);
-
-/** --- Speech Bubble Helpers --- */
-
 function showSpeech(text: string, duration: number = 4000): void {
-  const bubble = document.getElementById('speech-bubble');
+  const bubble = document.getElementById('speech-bubble') as HTMLElement;
   if (!bubble) return;
+  if (speechTimeout) clearTimeout(speechTimeout);
+
+  const safeScale = Number(currentScale) || 1.0;
+  const winWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 20;
+
+  // Cập nhật style bong bóng linh hoạt theo Scale
+  bubble.style.fontSize = `${Math.max(10, Math.ceil(14 * safeScale))}px`;
+  bubble.style.padding = `${Math.ceil(6 * safeScale + 2)}px ${Math.ceil(12 * safeScale + 4)}px`;
+  bubble.style.borderRadius = `${Math.ceil(12 * safeScale + 6)}px`;
+  bubble.style.maxWidth = `${winWidth - 10}px`;
+  
+  // Tính toán để ghim sát cạnh trên của khung Pet (vùng màu vàng)
+  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale) + 20;
+  bubble.style.bottom = `${petHeight + 20 + 2}px`; // Cách cạnh trên khung đúng 2px
+  bubble.style.top = 'auto';
+  
+  // Đồng bộ kích thước đuôi tam giác
+  bubble.style.setProperty('--tail-size', `${Math.max(4, Math.ceil(8 * safeScale))}px`);
 
   bubble.textContent = text;
   bubble.classList.add('visible');
+  isSpeechVisible = true;
+  syncWindowSize();
 
-  // Tự ẩn sau duration
-  setTimeout(() => {
-    bubble.classList.remove('visible');
-  }, duration);
+  speechTimeout = setTimeout(hideSpeech, duration);
+}
+
+function hideSpeech(): void {
+  const bubble = document.getElementById('speech-bubble');
+  if (bubble) bubble.classList.remove('visible');
+  isSpeechVisible = false;
+  syncWindowSize();
+  if (speechTimeout) {
+    clearTimeout(speechTimeout);
+    speechTimeout = null;
+  }
+}
+
+/** Đồng bộ kích thước cửa sổ dựa trên Scale và trạng thái lời thoại */
+function syncWindowSize(): void {
+  const safeScale = Number(currentScale) || 1.0;
+
+  // Chiều rộng Pet thực tế (Vừa khít hơn với hình)
+  const width = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 60;
+
+  // Chiều cao Pet thực tế (có padding 20px)
+  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale) + 20;
+
+  // Khoảng trống phía trên cho bong bóng (Headroom) - Tăng thêm để message thoải mái
+  const headroom = Math.max(100, Math.ceil(150 * safeScale) + 20);
+  console.log(`SyncSize: Scale=${safeScale}, Headroom=${headroom}`);
+
+  // Cập nhật vị trí Pet trong CSS
+  const canvas = document.getElementById('pet-canvas');
+  if (canvas) {
+    canvas.style.top = `${headroom}px`;
+  }
+
+  // Vậy chiều cao cửa sổ cần là headroom + petHeight + margin đáy
+  const totalHeight = headroom + petHeight + 20;
+
+  window.electronAPI.resizeWindow(width, totalHeight);
 }
 
 function getRandomPingSpeech(): string {
-  const speeches = [
-    'Ơi! Có tui nè!',
-    'Gì thế sen?',
-    'Gọi tui hả?',
-    'Có biến gì à?',
-    'Húuuu!',
-    'Đang nhảy đây!',
-  ];
-  return speeches[Math.floor(Math.random() * speeches.length)];
+  return ['Ơi!', 'Gì thế?', 'Gọi tui hả?', 'Hú!', 'Đang nhảy đây!'][Math.floor(Math.random() * 5)];
 }
 
 function setupRandomSpeech(stateMachine: PetStateMachine): void {
-  const randomSpeeches = [
-    'Uống nước đi sen ơi! 💧',
-    'Làm việc hiệu quả nhé! 💻',
-    'Tập thể dục tí cho khỏe... 🐾',
-    'Nghỉ tay tí đi, mỏi mắt rồi.',
-    'Tui đói quá... (đùa thôi)',
-    'Hôm nay bạn trông tuyệt vời đấy!',
-    'Đang làm gì thế cho tui xem với?',
-  ];
-
+  const randomSpeeches = ['Uống nước đi!', 'Làm việc nhé!', 'Tập thể dục tí...', 'Mỏi mắt rồi.', 'Bạn tuyệt vời đấy!'];
   const scheduleNext = () => {
-    // Ngẫu nhiên từ 2 đến 5 phút
-    const delay = (Math.random() * 3 + 2) * 60 * 1000;
     setTimeout(() => {
       showSpeech(randomSpeeches[Math.floor(Math.random() * randomSpeeches.length)]);
       scheduleNext();
-    }, delay);
+    }, (Math.random() * 3 + 2) * 60 * 1000);
   };
-
   scheduleNext();
 }
+
+init().catch(console.error);

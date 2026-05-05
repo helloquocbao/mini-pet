@@ -87,7 +87,14 @@ export function registerIpcHandlers(petManager: PetManager): void {
   ipcMain.on('window:resize', (_event, width: number, height: number) => {
     const win = BrowserWindow.fromWebContents(_event.sender);
     if (win) {
-      win.setSize(Math.round(width), Math.round(height), true);
+      const [oldW, oldH] = win.getSize();
+      const newWidth = Math.max(50, Math.round(width));
+      const newHeight = Math.max(50, Math.round(height));
+
+      if (newWidth === oldW && newHeight === oldH) return;
+
+      // Khi resize xuống dưới (Top-aligned), không cần chỉnh Y, rất mượt.
+      win.setSize(newWidth, newHeight);
     }
   });
 
