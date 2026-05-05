@@ -10,7 +10,6 @@ import { PetManager } from './pet/pet-manager';
 import { SettingsWindow } from './windows/settings-window';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 import started from 'electron-squirrel-startup';
-import http from 'http';
 import { PomodoroManager } from './pet/pomodoro-manager';
 
 if (started) {
@@ -69,25 +68,6 @@ app.whenReady().then(async () => {
     },
   });
   systemTray.create();
-
-  // 7. Khởi động Webhook Server (Cổng tiếp nhận thông báo ngoài)
-  const server = http.createServer((req, res) => {
-    if (req.url?.startsWith('/ping')) {
-      // Gửi lệnh nhảy tới Pet
-      BrowserWindow.getAllWindows().forEach(win => {
-        win.webContents.send('pet:ping');
-      });
-      res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
-      res.end('Đã gọi Pet thành công! 🐾');
-    } else {
-      res.writeHead(404);
-      res.end();
-    }
-  });
-
-  server.listen(3333, '127.0.0.1', () => {
-    console.log('Webhook server đang chạy tại: http://localhost:3333');
-  });
 });
 
 // macOS: re-create window khi click dock icon

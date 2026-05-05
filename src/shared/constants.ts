@@ -33,7 +33,7 @@ export const OVERLAY_WINDOW = {
 
 /** Settings window dimensions */
 export const SETTINGS_WINDOW = {
-  WIDTH: 600,
+  WIDTH: 720,
   HEIGHT: 500,
 } as const;
 

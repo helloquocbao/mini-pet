@@ -10,12 +10,12 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
   background: #1a1b2e;
   color: #e0e0e8;
-  padding: 24px;
+  padding: 20px;
   line-height: 1.5;
 }
 
 .settings-container {
-  max-width: 560px;
+  max-width: 672px;
   margin: 0 auto;
 }
 
@@ -42,14 +42,14 @@ body {
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px;
   margin-bottom: 16px;
 }
 
 .section h2 {
   font-size: 15px;
   font-weight: 600;
-  margin-bottom: 14px;
+  margin-bottom: 10px;
   color: rgba(255, 255, 255, 0.9);
 }
 
@@ -57,14 +57,12 @@ body {
 .pet-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-  gap: 20px;
-  margin-bottom: 20px;
+  gap: 12px;
+  margin-bottom: 15px;
 }
 
 .gallery-actions {
   display: flex;
-  justify-content: flex-end;
-  margin-top: 15px;
 }
 
 .pet-card {
@@ -112,14 +110,14 @@ body {
 .settings-form {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .setting-item {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 10px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -137,7 +135,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 10px;
 }
 
 .status-tag {
@@ -159,13 +157,13 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
-  padding: 10px 0;
+  gap: 8px;
+  padding: 0;
 }
 
 .pomo-settings {
   display: flex;
-  gap: 20px;
+  gap: 12px;
 }
 
 .pomo-input-group {
@@ -182,19 +180,19 @@ body {
 }
 
 .pomo-input-group input {
-  width: 70px;
+  width: 60px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
+  border-radius: 6px;
   color: #fff;
-  padding: 6px;
+  padding: 4px;
   text-align: center;
   font-family: 'JetBrains Mono', monospace;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 .pomo-timer {
-  font-size: 56px;
+  font-size: 36px;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
   color: #fff;
@@ -210,7 +208,7 @@ body {
   background: linear-gradient(135deg, #7c3aed, #ec4899);
   border: none;
   color: #fff;
-  padding: 10px 24px;
+  padding: 8px 16px;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -222,7 +220,7 @@ body {
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.1);
   color: #fff;
-  padding: 10px 20px;
+  padding: 8px 12px;
   border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
@@ -238,19 +236,19 @@ body {
 
 input[type="range"] {
   -webkit-appearance: none;
-  width: 140px;
-  height: 6px;
+  width: 120px;
+  height: 4px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
 }
 
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 14px;
+  height: 14px;
   background: linear-gradient(135deg, #7c3aed, #ec4899);
   border-radius: 50%;
-  border: 2px solid #fff;
+  border: 1.5px solid #fff;
 }
 
 #scale-value {
@@ -262,8 +260,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .switch {
   position: relative;
-  width: 44px;
-  height: 24px;
+  width: 40px;
+  height: 22px;
 }
 
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -279,7 +277,7 @@ input[type="range"]::-webkit-slider-thumb {
 .slider:before {
   position: absolute;
   content: "";
-  height: 18px; width: 18px;
+  height: 16px; width: 16px;
   left: 3px; bottom: 3px;
   background-color: white;
   transition: .4s;
@@ -291,7 +289,7 @@ input:checked + .slider {
 }
 
 input:checked + .slider:before {
-  transform: translateX(20px);
+  transform: translateX(18px);
 }
 
 .setting-item-column {
