@@ -60,8 +60,16 @@ export class AnimationController {
 
   private draw(): void {
     if (!this.currentConfig) return;
-    const activeRow = this.currentConfig.row;
-    const shouldFlip = this.direction === -1;
+    
+    let activeRow = this.currentConfig.row;
+    let shouldFlip = this.direction === -1;
+
+    // Hỗ trợ dùng dòng 2 và 3 cho hướng trái/phải (không dùng flip)
+    // NGƯỢC LẠI: Dòng 3 (index 2) cho Left, Dòng 2 (index 1) cho Right
+    if (activeRow === 1 || activeRow === 2) {
+      activeRow = this.direction === -1 ? 2 : 1;
+      shouldFlip = false; 
+    }
 
     this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
   }
@@ -76,8 +84,8 @@ export class AnimationController {
     if (now - this.lastFrameTime >= msPerFrame) {
       this.lastFrameTime = now;
 
-      // 1. Logic di chuyển cửa sổ (nếu đang walk)
-      const isMovementAnimation = this.currentConfig.canMove || [1, 2, 7].includes(this.currentConfig.row);
+      // 1. Logic di chuyển cửa sổ (nếu đang walk/run)
+      const isMovementAnimation = this.currentConfig.canMove || [1, 2].includes(this.currentConfig.row);
       
       if (isMovementAnimation && this.isPlaying && this.walkingEnabled) {
         const speed = (this.currentConfig.speed || 0.9) * this.scale;

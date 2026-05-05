@@ -35,23 +35,6 @@ export class SystemTray {
       { label: 'Show/Hide Pet', click: this.callbacks.onTogglePet },
       { label: 'Settings...', click: this.callbacks.onShowSettings },
       { type: 'separator' },
-      {
-        label: 'Quick Actions',
-        submenu: [
-          {
-            label: 'Move to Corner',
-            click: () => {
-              /* Logic dời về góc */
-            },
-          },
-          {
-            label: 'Reset Scale',
-            click: () => {
-              /* Logic reset scale */
-            },
-          },
-        ],
-      },
       { type: 'separator' },
       { label: 'Quit MiniPet', accelerator: 'Command+Q', click: this.callbacks.onQuit },
     ];
