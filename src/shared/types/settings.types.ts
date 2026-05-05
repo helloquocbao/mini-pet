@@ -13,6 +13,10 @@ export interface UserSettings {
   autoStart: boolean;
   /** Hiển thị notification qua pet */
   enableNotifications: boolean;
+  /** Khởi chạy cùng hệ thống */
+  launchAtStartup: boolean;
+  lastX: number | null;
+  lastY: number | null;
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -22,4 +26,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   enableWalking: true,
   autoStart: false,
   enableNotifications: true,
+  launchAtStartup: false,
+  lastX: null,
+  lastY: null,
 };

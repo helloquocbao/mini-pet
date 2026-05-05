@@ -22,6 +22,10 @@ export interface AnimationConfig {
   loop: boolean;
   /** State fallback khi animation kết thúc (chỉ dùng khi loop=false) */
   nextState?: PetState;
+  /** Cho phép di chuyển cửa sổ khi play animation này */
+  canMove?: boolean;
+  /** Tốc độ di chuyển (mặc định 1.5) */
+  speed?: number;
 }
 
 /** PetDex-compatible manifest (pet.json) */

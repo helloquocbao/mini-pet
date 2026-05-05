@@ -7,6 +7,8 @@ import { AnimationController } from './engine/animation-controller';
 import { PetStateMachine } from './engine/pet-state-machine';
 import { PETDEX_SPRITE } from '../../shared/constants';
 
+let isAlarming = false;
+
 async function init(): Promise<void> {
   const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
 
@@ -48,6 +50,37 @@ async function init(): Promise<void> {
   const stateMachine = new PetStateMachine(controller, initialScale, isWalkingEnabled);
   controller.setWalkingEnabled(isWalkingEnabled);
   stateMachine.start();
+
+  // Lắng nghe lệnh Ping (để pet nhảy lên)
+  window.electronAPI.onPing(() => {
+    stateMachine.notify();
+    showSpeech(getRandomPingSpeech());
+  });
+
+
+  window.electronAPI.onStartAlarm(() => {
+    isAlarming = true;
+    stateMachine.startAlarm();
+  });
+
+  window.electronAPI.onStopAlarm(() => {
+    isAlarming = false;
+    stateMachine.stopAlarm();
+  });
+
+  // Lắng nghe Pomodoro kết thúc để hiện lời nhắn
+  window.electronAPI.onPomoTick((state: any) => {
+    if (state.finished) {
+      if (!state.isWorkSession) {
+        showSpeech('Hết giờ tập trung! Nghỉ ngơi thôi sen ơi! 🐾', 30000); // Hiện lâu (30s)
+      } else {
+        showSpeech('Hết giờ nghỉ rồi! Quay lại làm việc thôi! 💪', 30000);
+      }
+    }
+  });
+
+  // 7. Vòng lặp lời thoại ngẫu nhiên
+  setupRandomSpeech(stateMachine);
 
   // 5. Lắng nghe cập nhật cài đặt thời gian thực
   let currentPetSlug = petData?.slug;
@@ -133,6 +166,14 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   });
 
   canvas.addEventListener('click', () => {
+    if (isAlarming) {
+      window.electronAPI.stopAlarm();
+      // Ẩn speech bubble ngay lập tức khi click
+      const bubble = document.getElementById('speech-bubble');
+      if (bubble) bubble.classList.remove('visible');
+      return;
+    }
+
     if (!wasDragged) {
       // Chỉ cho đi bộ nếu tính năng này đang bật
       if (stateMachine.getWalkingEnabled()) {
@@ -152,3 +193,53 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
 
 // Boot
 init().catch(console.error);
+
+/** --- Speech Bubble Helpers --- */
+
+function showSpeech(text: string, duration: number = 4000): void {
+  const bubble = document.getElementById('speech-bubble');
+  if (!bubble) return;
+
+  bubble.textContent = text;
+  bubble.classList.add('visible');
+
+  // Tự ẩn sau duration
+  setTimeout(() => {
+    bubble.classList.remove('visible');
+  }, duration);
+}
+
+function getRandomPingSpeech(): string {
+  const speeches = [
+    'Ơi! Có tui nè!',
+    'Gì thế sen?',
+    'Gọi tui hả?',
+    'Có biến gì à?',
+    'Húuuu!',
+    'Đang nhảy đây!',
+  ];
+  return speeches[Math.floor(Math.random() * speeches.length)];
+}
+
+function setupRandomSpeech(stateMachine: PetStateMachine): void {
+  const randomSpeeches = [
+    'Uống nước đi sen ơi! 💧',
+    'Làm việc hiệu quả nhé! 💻',
+    'Tập thể dục tí cho khỏe... 🐾',
+    'Nghỉ tay tí đi, mỏi mắt rồi.',
+    'Tui đói quá... (đùa thôi)',
+    'Hôm nay bạn trông tuyệt vời đấy!',
+    'Đang làm gì thế cho tui xem với?',
+  ];
+
+  const scheduleNext = () => {
+    // Ngẫu nhiên từ 2 đến 5 phút
+    const delay = (Math.random() * 3 + 2) * 60 * 1000;
+    setTimeout(() => {
+      showSpeech(randomSpeeches[Math.floor(Math.random() * randomSpeeches.length)]);
+      scheduleNext();
+    }, delay);
+  };
+
+  scheduleNext();
+}

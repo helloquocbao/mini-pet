@@ -18,6 +18,9 @@ export class PetManager {
   private petsDir: string;
   private settingsPath: string;
 
+  private overlayWindow: any;
+  private settingsWindow: any;
+
   constructor() {
     this.loader = new PetLoader();
     const userData = app.getPath('userData');
@@ -98,6 +101,15 @@ export class PetManager {
   async updateSettings(newSettings: Partial<any>): Promise<void> {
     this.settings = { ...this.settings, ...newSettings };
     await this.saveSettings();
+
+    // Xử lý khởi động cùng hệ thống
+    if (newSettings.launchAtStartup !== undefined) {
+      app.setLoginItemSettings({
+        openAtLogin: newSettings.launchAtStartup,
+        path: app.getPath('exe'),
+      });
+      console.log('PetManager: Launch at startup set to:', newSettings.launchAtStartup);
+    }
     
     // Notify all windows
     this.overlayWindow?.getWindow()?.webContents.send('settings:updated', {

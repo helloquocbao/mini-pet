@@ -32,6 +32,24 @@ export function registerIpcHandlers(petManager: PetManager): void {
     return petManager.getSpritesheetURL(petSlug);
   });
 
+  ipcMain.on('pet:ping', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:ping');
+    });
+  });
+
+  ipcMain.on('pet:start-alarm', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:start-alarm');
+    });
+  });
+
+  ipcMain.on('pet:stop-alarm', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:stop-alarm');
+    });
+  });
+
   // --- Settings handlers ---
 
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, async () => {

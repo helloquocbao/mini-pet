@@ -13,42 +13,38 @@ body {
   overflow: hidden;
   user-select: none;
   -webkit-app-region: no-drag;
-
-  /* Căn giữa canvas */
-  display: flex;
-  justify-content: center;
-  align-items: center;
 }
 
 #pet-canvas {
-  /* Canvas chứa pet — vùng này KHÔNG click-through */
-  display: block;
-  margin: 0 auto;
-  cursor: pointer;
-  /* Pixel art PHẢI sharp */
-  image-rendering: pixelated;
-  image-rendering: crisp-edges;
-
-  /* DEBUG: Bỏ comment dòng dưới để thấy khung canvas nếu pet không hiện */
-  /* border: 1px solid red; */
-}
-
-/* Notification sign — hiện phía trên pet */
-.notify-sign {
   position: absolute;
-  bottom: 220px; /* Phía trên pet */
+  bottom: 10px; /* Pet ở sát đáy */
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(30, 30, 40, 0.95);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  padding: 10px 14px;
-  max-width: 220px;
-  color: #fff;
-  font-family: 'Segoe UI', system-ui, sans-serif;
-  font-size: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  animation: slideDown 0.3s ease-out;
+  display: block;
+  cursor: pointer;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+/* --- Speech Bubble --- */
+.speech-bubble {
+  position: absolute;
+  bottom: 240px; /* Cao hơn đầu Pet (Pet cao 208px) */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1b2e;
+  padding: 10px 16px;
+  border-radius: 18px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 200px;
+  text-align: center;
+  z-index: 100;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   pointer-events: none;
 }
 
@@ -90,4 +86,42 @@ body {
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+}
+
+/* --- Speech Bubble --- */
+.speech-bubble {
+  position: absolute;
+  bottom: 220px; /* Above pet */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  color: #1a1b2e;
+  padding: 10px 16px;
+  border-radius: 18px;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  max-width: 200px;
+  text-align: center;
+  z-index: 100;
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid rgba(255, 255, 255, 0.95);
+}
+
+.speech-bubble.visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-10px);
 }

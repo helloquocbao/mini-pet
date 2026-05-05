@@ -54,6 +54,28 @@ export class PetStateMachine {
     this.controller.setScale(scale);
   }
 
+  updateAnimations(newAnimations: any): void {
+    this.animations = { ...(DEFAULT_ANIMATIONS as any), ...newAnimations };
+  }
+
+  /** Kích hoạt trạng thái thông báo */
+  notify(): void {
+    this.forceState('notify');
+  }
+
+  /** Chế độ báo động (nhảy liên tục) */
+  startAlarm(): void {
+    // Ép Pet vào trạng thái vẫy tay liên tục
+    const config = { ...this.animations['notify'], loop: true };
+    this.controller.play(config, this.scale);
+    this.currentState = 'notify';
+  }
+
+  /** Dừng báo động */
+  stopAlarm(): void {
+    this.transitionTo('idle');
+  }
+
   /** Start FSM */
   start(): void {
     this.transitionTo('idle');

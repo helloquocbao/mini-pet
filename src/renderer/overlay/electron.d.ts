@@ -11,6 +11,23 @@ export interface ElectronAPI {
   openSettings: () => void;
   onSettingsUpdate: (callback: (data: any) => void) => void;
   onNotification: (callback: (payload: any) => void) => void;
+  
+  // --- New Methods ---
+  pingPet: () => void;
+  onPing: (cb: () => void) => void;
+  startAlarm: () => void;
+  stopAlarm: () => void;
+  onStartAlarm: (cb: () => void) => void;
+  onStopAlarm: (cb: () => void) => void;
+  savePosition: (x: number, y: number) => void;
+  
+  // --- Pomodoro ---
+  startPomo: (focus: number, breakMin: number) => void;
+  pausePomo: () => void;
+  resetPomo: () => void;
+  updatePomoConfig: (focus: number, breakMin: number) => void;
+  getPomoState: () => Promise<any>;
+  onPomoTick: (cb: (state: any) => void) => void;
 }
 
 declare global {

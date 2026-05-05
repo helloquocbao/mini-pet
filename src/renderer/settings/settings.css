@@ -85,7 +85,7 @@ body {
   width: 64px;
   height: 70px;
   margin: 0 auto 8px;
-  background-size: 512px auto; /* 512px = 64px * 8 cột */
+  background-size: 512px auto;
   background-position: 0 0;
   background-repeat: no-repeat;
   image-rendering: pixelated;
@@ -101,7 +101,7 @@ body {
   text-overflow: ellipsis;
 }
 
-/* Preferences UI Redesign */
+/* Settings Form */
 .settings-form {
   display: flex;
   flex-direction: column;
@@ -119,48 +119,131 @@ body {
   transition: all 0.3s ease;
 }
 
-.setting-item:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(124, 58, 237, 0.3);
-}
-
 .setting-item label {
   font-size: 14px;
   font-weight: 500;
   color: #fff;
 }
 
+/* Pomodoro Timer Specifics (Old Style) */
+.section-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.status-tag {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.status-tag.active {
+  background: rgba(236, 72, 153, 0.2);
+  color: #ec4899;
+}
+
+.pomo-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 0;
+}
+
+.pomo-settings {
+  display: flex;
+  gap: 20px;
+}
+
+.pomo-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: center;
+}
+
+.pomo-input-group label {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+  text-transform: uppercase;
+}
+
+.pomo-input-group input {
+  width: 70px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #fff;
+  padding: 6px;
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 16px;
+}
+
+.pomo-timer {
+  font-size: 56px;
+  font-weight: 800;
+  font-family: 'JetBrains Mono', monospace;
+  color: #fff;
+  text-shadow: 0 0 30px rgba(124, 58, 237, 0.4);
+}
+
+.pomo-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.primary-btn {
+  background: linear-gradient(135deg, #7c3aed, #ec4899);
+  border: none;
+  color: #fff;
+  padding: 10px 24px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.secondary-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Range & Switch */
 .range-container {
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-/* Custom Range Slider */
-input[type='range'] {
+input[type="range"] {
   -webkit-appearance: none;
   width: 140px;
   height: 6px;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 10px;
-  outline: none;
-  cursor: pointer;
 }
 
-input[type='range']::-webkit-slider-thumb {
+input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   width: 18px;
   height: 18px;
   background: linear-gradient(135deg, #7c3aed, #ec4899);
   border-radius: 50%;
   border: 2px solid #fff;
-  box-shadow: 0 0 10px rgba(124, 58, 237, 0.5);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-input[type='range']::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
 }
 
 #scale-value {
@@ -168,79 +251,49 @@ input[type='range']::-webkit-slider-thumb:hover {
   font-family: 'JetBrains Mono', monospace;
   color: #7c3aed;
   font-weight: 700;
-  min-width: 45px;
-  background: rgba(124, 58, 237, 0.15);
-  padding: 2px 6px;
-  border-radius: 4px;
-  text-align: center;
 }
 
-/* Custom Switch Toggle (Apple Style) */
 .switch {
   position: relative;
-  display: inline-block;
   width: 44px;
   height: 24px;
 }
 
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
+.switch input { opacity: 0; width: 0; height: 0; }
 
 .slider {
   position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background-color: rgba(255, 255, 255, 0.1);
-  transition: 0.4s;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: .4s;
+  border-radius: 34px;
 }
 
 .slider:before {
   position: absolute;
-  content: '';
-  height: 18px;
-  width: 18px;
-  left: 2px;
-  bottom: 2px;
+  content: "";
+  height: 18px; width: 18px;
+  left: 3px; bottom: 3px;
   background-color: white;
-  transition: 0.4s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: .4s;
+  border-radius: 50%;
 }
 
 input:checked + .slider {
   background: linear-gradient(135deg, #7c3aed, #ec4899);
-  border-color: transparent;
 }
 
 input:checked + .slider:before {
   transform: translateX(20px);
 }
 
-.slider.round {
-  border-radius: 34px;
-}
-
-.slider.round:before {
-  border-radius: 50%;
-}
-
 .setting-item-column {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-bottom: 8px;
+  gap: 4px;
 }
 
 .setting-hint {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.35);
-  padding: 0 4px;
-  line-height: 1.4;
-  margin-top: -4px;
 }

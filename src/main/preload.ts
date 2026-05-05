@@ -10,10 +10,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getActivePet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_GET_ACTIVE),
   getPetList: () => ipcRenderer.invoke(IPC_CHANNELS.PET_GET_LIST),
   setActivePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_SET_ACTIVE, slug),
+  pingPet: () => ipcRenderer.send('pet:ping'),
+  onPing: (cb: any) => ipcRenderer.on('pet:ping', () => cb()),
+  startAlarm: () => ipcRenderer.send('pet:start-alarm'),
+  stopAlarm: () => ipcRenderer.send('pet:stop-alarm'),
+  onStartAlarm: (cb: any) => ipcRenderer.on('pet:start-alarm', () => cb()),
+  onStopAlarm: (cb: any) => ipcRenderer.on('pet:stop-alarm', () => cb()),
   loadSpritesheet: (petSlug: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PET_LOAD_SPRITESHEET, petSlug),
 
-  // Settings
+  // --- Pomodoro ---
+  startPomo: (focus: number, breakMin: number) => ipcRenderer.send('pomo:start', focus, breakMin),
+  pausePomo: () => ipcRenderer.send('pomo:pause'),
+  resetPomo: () => ipcRenderer.send('pomo:reset'),
+  updatePomoConfig: (focus: number, breakMin: number) => ipcRenderer.send('pomo:update-config', focus, breakMin),
+  getPomoState: () => ipcRenderer.invoke('pomo:get-state'),
+  onPomoTick: (cb: (state: any) => void) => ipcRenderer.on('pomo:tick', (_event, state) => cb(state)),
+
+  // --- Settings ---
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
   updateSettings: (settings: Record<string, unknown>) =>
     ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_UPDATE, settings),
