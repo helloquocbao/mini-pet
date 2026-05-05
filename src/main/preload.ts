@@ -10,6 +10,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getActivePet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_GET_ACTIVE),
   getPetList: () => ipcRenderer.invoke(IPC_CHANNELS.PET_GET_LIST),
   setActivePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_SET_ACTIVE, slug),
+  importPet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_IMPORT),
   pingPet: () => ipcRenderer.send('pet:ping'),
   onPing: (cb: any) => ipcRenderer.on('pet:ping', () => cb()),
   startAlarm: () => ipcRenderer.send('pet:start-alarm'),

@@ -2,12 +2,25 @@
  * IPC Handlers — Đăng ký tất cả ipcMain.handle và ipcMain.on.
  */
 
-import { ipcMain, BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { PetManager } from '../pet/pet-manager';
+import { UserSettings } from '../../shared/types/settings.types';
 
 export function registerIpcHandlers(petManager: PetManager): void {
   // --- Pet handlers ---
+
+  ipcMain.handle('pet:import', async () => {
+    const result = await dialog.showOpenDialog({
+      properties: ['openDirectory'],
+      title: 'Select Pet Folder (must contain pet.json)',
+    });
+
+    if (!result.canceled && result.filePaths.length > 0) {
+      return await petManager.importPet(result.filePaths[0]);
+    }
+    return null;
+  });
 
   ipcMain.handle(IPC_CHANNELS.PET_GET_LIST, async () => {
     return petManager.getInstalledPets();

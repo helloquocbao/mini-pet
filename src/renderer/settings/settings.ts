@@ -141,6 +141,15 @@ function setupEventListeners(settings: UserSettings): void {
   pingBtn.addEventListener('click', () => {
     window.electronAPI.pingPet();
   });
+
+  const importBtn = document.getElementById('import-pet-btn') as HTMLButtonElement;
+  importBtn.addEventListener('click', async () => {
+    const newList = await window.electronAPI.importPet();
+    if (newList) {
+      const settings = await window.electronAPI.getSettings();
+      renderPetGallery(newList, settings.activePetSlug);
+    }
+  });
 }
 
 initSettings().catch(console.error);

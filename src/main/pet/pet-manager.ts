@@ -129,6 +129,31 @@ export class PetManager {
     await this.saveSettings();
   }
 
+  /** Nhập thêm Pet mới từ thư mục bên ngoài */
+  async importPet(sourcePath: string): Promise<PetListItem[]> {
+    try {
+      const manifestPath = path.join(sourcePath, 'pet.json');
+      await fs.access(manifestPath);
+
+      const manifestData = await fs.readFile(manifestPath, 'utf8');
+      const manifest = JSON.parse(manifestData);
+      const slug = manifest.slug || path.basename(sourcePath);
+      
+      const targetPath = path.join(this.petsDir, slug);
+      
+      // Copy toàn bộ thư mục vào kho Pet của app
+      await fs.cp(sourcePath, targetPath, { recursive: true });
+      console.log(`PetManager: Imported pet ${slug} to ${targetPath}`);
+
+      // Scan lại danh sách Pet
+      this.pets = await this.loader.scanPetsDirectory(this.petsDir);
+      return this.getInstalledPets();
+    } catch (err) {
+      console.error('PetManager: Import failed:', err);
+      throw err;
+    }
+  }
+
   // --- Private ---
 
   private async copyDefaultPets(): Promise<void> {

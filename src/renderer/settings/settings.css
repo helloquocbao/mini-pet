@@ -56,8 +56,15 @@ body {
 /* Pet Gallery Grid */
 .pet-gallery {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.gallery-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 15px;
 }
 
 .pet-card {
