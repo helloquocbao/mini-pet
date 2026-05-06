@@ -1,4 +1,4 @@
-import { BrowserWindow, screen, ipcMain } from 'electron';
+import { app, BrowserWindow, screen, ipcMain } from 'electron';
 import path from 'path';
 import { OVERLAY_WINDOW } from '../../shared/constants';
 
@@ -24,6 +24,9 @@ export class OverlayWindow {
       resizable: false,
       focusable: false,
       hasShadow: false,
+      icon: app.isPackaged
+        ? path.join(process.resourcesPath, 'icons', 'icon.png')
+        : path.join(app.getAppPath(), 'src/assets/icons/icon.png'),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,

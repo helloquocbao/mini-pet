@@ -24,7 +24,7 @@ export class SystemTray {
 
     const icon = nativeImage.createFromPath(iconPath);
 
-    this.tray = new Tray(icon.resize({ width: 18, height: 18 }));
+    this.tray = new Tray(icon);
     this.tray.setToolTip('MiniPet Control Center');
 
     this.updateMenu(lang);

@@ -27,20 +27,22 @@ app.whenReady().then(async () => {
   // Khởi tạo trình quản lý Pomodoro
   new PomodoroManager();
 
-  // Ẩn Dock icon trên Mac để app chạy tinh tế hơn
-  if (process.platform === 'darwin') {
-    app.dock.hide();
-    const iconPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'icons', 'icon.png')
-      : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
-    app.dock.setIcon(iconPath);
-  }
-
   // 1. Init pet manager
   petManager = new PetManager();
   await petManager.init();
 
   const settings = await petManager.getSettings();
+
+  // Determine icon path for all platforms
+  const iconPath = app.isPackaged
+    ? path.join(process.resourcesPath, 'icons', 'icon.png')
+    : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
+
+  // Set Dock icon for macOS
+  if (process.platform === 'darwin') {
+    app.dock.hide();
+    app.dock.setIcon(iconPath);
+  }
 
   // 2. Create windows
   overlayWindow = new OverlayWindow();
@@ -60,8 +62,11 @@ app.whenReady().then(async () => {
     onTogglePet: () => {
       const win = overlayWindow.getWindow();
       if (win) {
-        if (win.isVisible()) win.hide();
-        else win.show();
+        if (win.isVisible()) {
+          win.hide();
+        } else {
+          win.show();
+        }
       }
     },
   });
@@ -70,7 +75,7 @@ app.whenReady().then(async () => {
   // 4. Register IPC handlers
   registerIpcHandlers(petManager, systemTray);
 
-  // Thêm handler riêng để mở cửa sổ settings
+  // 5. Thêm handler riêng để mở cửa sổ settings
   ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
     settingsWindow.open();
   });
