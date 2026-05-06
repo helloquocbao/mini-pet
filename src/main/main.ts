@@ -17,6 +17,11 @@ if (started) {
   app.quit();
 }
 
+// Ẩn Dock icon trên Mac ngay lập tức nếu có thể
+if (process.platform === 'darwin') {
+  app.dock?.hide();
+}
+
 let overlayWindow: OverlayWindow;
 let settingsWindow: SettingsWindow;
 let systemTray: SystemTray;
@@ -27,11 +32,6 @@ let isQuitting = false;
 app.whenReady().then(async () => {
   // Khởi tạo trình quản lý Pomodoro
   new PomodoroManager();
-
-  // Ẩn Dock icon trên Mac để app chạy tinh tế hơn
-  if (process.platform === 'darwin') {
-    app.dock.hide();
-  }
 
   // 1. Init managers
   petManager = new PetManager();
@@ -66,6 +66,7 @@ app.whenReady().then(async () => {
     },
     onQuit: () => {
       isQuitting = true;
+      settingsWindow.setForceQuit(true);
       app.quit();
     },
     onTogglePet: () => {
@@ -88,12 +89,19 @@ app.on('activate', () => {
   }
 });
 
+// Chặn việc app tự thoát khi đóng hết window trên Windows
 app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    if (!isQuitting) {
-      // Prevent default
-    } else {
+  if (process.platform === 'darwin') {
+    // Trên Mac thường không thoát app khi đóng window
+  } else {
+    // Trên Windows, nếu không phải đang quit thì không làm gì cả (chạy ẩn)
+    if (isQuitting) {
       app.quit();
     }
   }
+});
+
+app.on('before-quit', () => {
+  isQuitting = true;
+  settingsWindow?.setForceQuit(true);
 });
