@@ -112,6 +112,11 @@ async function init(): Promise<void> {
     }
   });
 
+  // --- Intelligence ---
+  window.electronAPI.onPetSay((text: string) => {
+    showSpeech(text);
+  });
+
   setupMouseInteraction(canvas, stateMachine);
 }
 
@@ -312,9 +317,15 @@ function setupRandomSpeech(stateMachine: PetStateMachine): void {
     if (!isSpeechVisible && !isAlarming && Math.random() < 0.1) {
       const state = stateMachine.getState();
       const t = translations[currentLanguage];
-      if (state === 'idle') showSpeech(t.idleSpeech || '...');
-      else if (state === 'sleep') showSpeech('Zzz...');
-      else if (state === 'walk') showSpeech(t.walkSpeech || '🎶');
+      
+      if (state === 'sleep') {
+        showSpeech('Zzz...');
+      } else {
+        // Sử dụng mảng randomSpeeches để đa dạng nội dung
+        const choices = t.randomSpeeches || ['🐾', '❤️', '✨'];
+        const speech = choices[Math.floor(Math.random() * choices.length)];
+        showSpeech(speech);
+      }
     }
   }, 15000);
 }

@@ -1,30 +1,38 @@
 import { exec } from 'child_process';
-import { BrowserWindow } from 'electron';
 import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { translations } from '../../shared/i18n/translations';
 import { PetManager } from './pet-manager';
+import { OverlayWindow } from '../windows/overlay-window';
 
 export class IntelligenceManager {
   private interval: NodeJS.Timeout | null = null;
   private lastApp: string = '';
-  private overlayWindow: BrowserWindow | null = null;
+  private lastTabTitle: string = '';
+  private overlay: OverlayWindow;
   private petManager: PetManager;
 
-  constructor(overlayWindow: BrowserWindow, petManager: PetManager) {
-    this.overlayWindow = overlayWindow;
+  constructor(overlay: OverlayWindow, petManager: PetManager) {
+    this.overlay = overlay;
     this.petManager = petManager;
   }
 
   start() {
     this.stop();
-    this.interval = setInterval(() => {
+    this.scheduleNextCheck();
+  }
+
+  private scheduleNextCheck() {
+    // Ngẫu nhiên từ 30s (30000ms) đến 60s (60000ms)
+    const delay = Math.floor(Math.random() * (60000 - 30000 + 1)) + 30000;
+    this.interval = setTimeout(() => {
       this.checkContext();
-    }, 10000);
+      this.scheduleNextCheck();
+    }, delay);
   }
 
   stop() {
     if (this.interval) {
-      clearInterval(this.interval);
+      clearTimeout(this.interval);
       this.interval = null;
     }
   }
@@ -42,9 +50,19 @@ export class IntelligenceManager {
       if (error) return;
       const currentApp = stdout.trim();
       
+      const isBrowser = currentApp.includes('Chrome') || currentApp.includes('Safari') || currentApp.includes('Arc');
+
+      // Luôn cho phép nhận xét nếu là App khác, hoặc nếu là Browser thì kiểm tra Tab
       if (currentApp !== this.lastApp && currentApp !== 'Electron' && currentApp !== 'MiniPet') {
         this.lastApp = currentApp;
         this.generateAppComment(currentApp);
+      } else if (isBrowser) {
+        this.checkBrowserTab(currentApp);
+      } else if (currentApp === this.lastApp && currentApp !== 'Electron' && currentApp !== 'MiniPet') {
+        // Nếu vẫn ở App cũ quá lâu, thỉnh thoảng (30%) vẫn nói gì đó cho đỡ chán
+        if (Math.random() < 0.3) {
+          this.generateAppComment(currentApp);
+        }
       }
     });
   }
@@ -56,10 +74,9 @@ export class IntelligenceManager {
     
     if (appName.includes('Code') || appName.includes('Cursor') || appName.includes('Zed')) {
       choices = t.intelAppCode;
-    } else if (appName.includes('Chrome') || appName.includes('Safari')) {
-      // Nếu là trình duyệt, chạy tiếp AppleScript để lấy tiêu đề Tab
+    } else if (appName.includes('Chrome') || appName.includes('Safari') || appName.includes('Arc')) {
       this.checkBrowserTab(appName);
-      return; // Sẽ xử lý trong hàm checkBrowserTab
+      return;
     } else if (appName.includes('Spotify') || appName.includes('Music')) {
       choices = t.intelAppMusic;
     } else if (appName.includes('Slack') || appName.includes('Telegram') || appName.includes('Messenger')) {
@@ -90,6 +107,8 @@ export class IntelligenceManager {
       script = 'tell application "Google Chrome" to get title of active tab of front window';
     } else if (browserName.includes('Safari')) {
       script = 'tell application "Safari" to get name of current tab of front window';
+    } else if (browserName.includes('Arc')) {
+      script = 'tell application "Arc" to get title of active tab of front window';
     }
 
     if (!script) return;
@@ -97,7 +116,12 @@ export class IntelligenceManager {
     exec(`osascript -e '${script}'`, (error, stdout) => {
       if (error) return;
       const title = stdout.trim();
-      this.generateBrowserComment(title);
+      
+      // Nếu tiêu đề khác, hoặc kể cả trùng tiêu đề nhưng ngẫu nhiên (40%) vẫn nói để đa dạng
+      if (title && (title !== this.lastTabTitle || Math.random() < 0.4)) {
+        this.lastTabTitle = title;
+        this.generateBrowserComment(title);
+      }
     });
   }
 
@@ -119,10 +143,10 @@ export class IntelligenceManager {
     } else if (lowerTitle.includes('figma') || lowerTitle.includes('canva')) {
       choices = t.intelWebDesign;
     } else {
-      choices = t.intelAppWeb; // Quay lại câu nói chung chung cho web
+      choices = t.intelAppWeb;
     }
 
-    if (choices && choices.length > 0) {
+    if (choices && (choices as string[]).length > 0) {
       const comment = choices[Math.floor(Math.random() * choices.length)];
       this.say(comment);
     }
@@ -136,19 +160,21 @@ export class IntelligenceManager {
     if (hour >= 23 || hour < 5) {
       if (Math.random() < 0.1) {
         const choices = t.intelTimeLate;
-        this.say(choices[Math.floor(Math.random() * choices.length)]);
+        if (choices) this.say(choices[Math.floor(Math.random() * choices.length)]);
       }
     } else if (hour === 12) {
       if (Math.random() < 0.1) {
         const choices = t.intelTimeLunch;
-        this.say(choices[Math.floor(Math.random() * choices.length)]);
+        if (choices) this.say(choices[Math.floor(Math.random() * choices.length)]);
       }
     }
   }
 
   private say(text: string) {
-    if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-      this.overlayWindow.webContents.send(IPC_CHANNELS.PET_SAY, text);
-    }
+    this.overlay.getAllWindows().forEach(win => {
+      if (!win.isDestroyed()) {
+        win.webContents.send(IPC_CHANNELS.PET_SAY, text);
+      }
+    });
   }
 }

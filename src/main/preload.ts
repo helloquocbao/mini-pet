@@ -60,4 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Notifications (listen)
   onNotification: (callback: (payload: unknown) => void) =>
     ipcRenderer.on(IPC_CHANNELS.NOTIFICATION_NEW, (_event, payload) => callback(payload)),
+
+  // Intelligence
+  onPetSay: (cb: (text: string) => void) => ipcRenderer.on(IPC_CHANNELS.PET_SAY, (_event, text) => cb(text)),
 });

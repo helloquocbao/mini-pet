@@ -11,6 +11,7 @@ import { SettingsWindow } from './windows/settings-window';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 import started from 'electron-squirrel-startup';
 import { PomodoroManager } from './pet/pomodoro-manager';
+import { IntelligenceManager } from './pet/intelligence-manager';
 
 if (started) {
   app.quit();
@@ -20,6 +21,7 @@ let overlayWindow: OverlayWindow;
 let settingsWindow: SettingsWindow;
 let systemTray: SystemTray;
 let petManager: PetManager;
+let intelligenceManager: IntelligenceManager;
 let isQuitting = false;
 
 app.whenReady().then(async () => {
@@ -41,6 +43,10 @@ app.whenReady().then(async () => {
 
   // 3. Init pet manager (loads settings)
   await petManager.init();
+
+  // 3b. Init Intelligence Manager
+  intelligenceManager = new IntelligenceManager(overlayWindow, petManager);
+  intelligenceManager.start();
 
   // 4. Register IPC handlers
   registerIpcHandlers(petManager);
