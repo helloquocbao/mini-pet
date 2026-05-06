@@ -1,4 +1,4 @@
-import { BrowserWindow } from 'electron';
+import { app, BrowserWindow } from 'electron';
 import path from 'path';
 import { SETTINGS_WINDOW } from '../../shared/constants';
 
@@ -15,6 +15,9 @@ export class SettingsWindow {
       width: SETTINGS_WINDOW.WIDTH,
       height: SETTINGS_WINDOW.HEIGHT,
       title: 'MiniPet Settings',
+      icon: app.isPackaged
+        ? path.join(process.resourcesPath, 'icons', 'icon.png')
+        : path.join(app.getAppPath(), 'src/assets/icons/icon.png'),
       resizable: false,
       maximizable: false,
       webPreferences: {

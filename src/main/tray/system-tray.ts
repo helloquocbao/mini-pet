@@ -2,7 +2,7 @@
  * SystemTray — Quản lý tray icon và context menu.
  */
 
-import { Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
+import { app, Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
 import path from 'path';
 
 interface TrayCallbacks {
@@ -20,10 +20,12 @@ export class SystemTray {
   }
 
   create(): void {
-    // 1. Tạo icon (Sử dụng emoji làm icon tạm thời cho rõ nét trên Mac)
-    // Trên Mac, chúng ta nên dùng Template Image để nó tự đổi màu theo theme (Dark/Light)
-    const icon = nativeImage.createFromNamedImage('NSStatusAvailable', [0, 0, 0]);
-    // Hoặc dùng một icon PNG nếu có. Ở đây tôi dùng icon hệ thống cho chắc chắn hiện lên.
+    // Determine icon path
+    const iconPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'icons', 'icon.png')
+      : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
+
+    const icon = nativeImage.createFromPath(iconPath);
 
     this.tray = new Tray(icon.resize({ width: 18, height: 18 }));
     this.tray.setToolTip('MiniPet Control Center');

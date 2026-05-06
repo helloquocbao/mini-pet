@@ -3,6 +3,7 @@
  */
 
 import { app, BrowserWindow, ipcMain } from 'electron';
+import path from 'path';
 import { OverlayWindow } from './windows/overlay-window';
 import { SystemTray } from './tray/system-tray';
 import { registerIpcHandlers } from './ipc/ipc-handlers';
@@ -29,6 +30,10 @@ app.whenReady().then(async () => {
   // Ẩn Dock icon trên Mac để app chạy tinh tế hơn
   if (process.platform === 'darwin') {
     app.dock.hide();
+    const iconPath = app.isPackaged
+      ? path.join(process.resourcesPath, 'icons', 'icon.png')
+      : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
+    app.dock.setIcon(iconPath);
   }
 
   // 1. Init pet manager
