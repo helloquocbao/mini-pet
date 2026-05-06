@@ -34,9 +34,10 @@ app.whenReady().then(async () => {
   const settings = await petManager.getSettings();
 
   // Determine icon path for all platforms
+  const iconExt = process.platform === 'win32' ? 'ico' : 'png';
   const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'icons', 'icon.png')
-    : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
+    ? path.join(process.resourcesPath, 'icons', `icon.${iconExt}`)
+    : path.join(app.getAppPath(), `src/assets/icons/icon.${iconExt}`);
 
   // Set Dock icon for macOS
   if (process.platform === 'darwin') {

@@ -18,13 +18,15 @@ export class SystemTray {
 
   create(lang: Language = 'en'): void {
     // Determine icon path
+    const iconExt = process.platform === 'win32' ? 'ico' : 'png';
     const iconPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'icons', 'icon.png')
-      : path.join(app.getAppPath(), 'src/assets/icons/icon.png');
+      ? path.join(process.resourcesPath, 'icons', `icon.${iconExt}`)
+      : path.join(app.getAppPath(), `src/assets/icons/icon.${iconExt}`);
 
     const icon = nativeImage.createFromPath(iconPath);
 
-    this.tray = new Tray(icon);
+    // Resize tray icon to standard size (18x18 is good for macOS/Windows tray)
+    this.tray = new Tray(icon.resize({ width: 18, height: 18 }));
     this.tray.setToolTip('MiniPet Control Center');
 
     this.updateMenu(lang);

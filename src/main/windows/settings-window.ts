@@ -16,8 +16,8 @@ export class SettingsWindow {
       height: SETTINGS_WINDOW.HEIGHT,
       title: 'MiniPet Settings',
       icon: app.isPackaged
-        ? path.join(process.resourcesPath, 'icons', 'icon.png')
-        : path.join(app.getAppPath(), 'src/assets/icons/icon.png'),
+        ? path.join(process.resourcesPath, 'icons', `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
+        : path.join(app.getAppPath(), `src/assets/icons/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
       resizable: false,
       maximizable: false,
       webPreferences: {

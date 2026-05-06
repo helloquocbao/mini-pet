@@ -25,8 +25,8 @@ export class OverlayWindow {
       focusable: false,
       hasShadow: false,
       icon: app.isPackaged
-        ? path.join(process.resourcesPath, 'icons', 'icon.png')
-        : path.join(app.getAppPath(), 'src/assets/icons/icon.png'),
+        ? path.join(process.resourcesPath, 'icons', `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
+        : path.join(app.getAppPath(), `src/assets/icons/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
