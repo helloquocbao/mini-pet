@@ -3,6 +3,7 @@ import { UserSettings } from '../../shared/types/settings.types';
 import { translations, Language } from '../../shared/i18n/translations';
 
 async function initSettings(): Promise<void> {
+  console.log('Settings: Initializing...');
   const pets = await window.electronAPI.getPetList();
   const settings = await window.electronAPI.getSettings();
 
@@ -15,6 +16,7 @@ async function initSettings(): Promise<void> {
 
   // Listen for updates from main process
   window.electronAPI.onSettingsUpdate(async (data: any) => {
+    console.log('Settings: Received update from main process', data);
     const updatedSettings = data.settings;
     const updatedPets = await window.electronAPI.getPetList();
     await renderPetGallery(updatedPets, updatedSettings);
@@ -66,6 +68,7 @@ async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Pr
     removeBtn.title = t.removePet;
     
     removeBtn.addEventListener('click', async () => {
+      console.log('Settings: Removing pet instance:', instance.id);
       await (window.electronAPI as any).removePet(instance.id);
     });
     
@@ -119,6 +122,7 @@ async function renderPetGallery(pets: PetListItem[], settings: UserSettings): Pr
     }
 
     card.addEventListener('click', async () => {
+      console.log('Settings: Card clicked for pet:', pet.slug);
       const s = await window.electronAPI.getSettings();
       if (s.activePets.length >= 5) {
         const lang = (s.language || 'en') as Language;
@@ -127,6 +131,7 @@ async function renderPetGallery(pets: PetListItem[], settings: UserSettings): Pr
         return;
       }
       await (window.electronAPI as any).spawnPet(pet.slug);
+      console.log('Settings: Spawn request sent for:', pet.slug);
     });
 
     gallery.appendChild(card);
@@ -181,6 +186,11 @@ function setupEventListeners(settings: UserSettings): void {
     const pets = await window.electronAPI.getPetList();
     const currentSettings = await window.electronAPI.getSettings();
     renderPetGallery(pets, currentSettings);
+  });
+
+  const pingBtn = document.getElementById('ping-pet-btn');
+  pingBtn?.addEventListener('click', () => {
+    window.electronAPI.pingPet();
   });
 }
 

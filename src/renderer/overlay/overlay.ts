@@ -172,17 +172,18 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     if (clickTimer) clearTimeout(clickTimer);
 
     const t = translations[currentLanguage];
+    const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
 
     if (clickCount === 1) {
       stateMachine.forceState('happy');
-      showSpeech(t.hello);
+      showSpeech(pickRandom(t.hello));
     } else if (clickCount === 2) {
       stateMachine.forceState('jump');
-      showSpeech(t.exercise);
+      showSpeech(pickRandom(t.exercise));
     } else if (clickCount >= 3) {
       if (stateMachine.getWalkingEnabled()) {
         stateMachine.forceState('run');
-        showSpeech(t.run);
+        showSpeech(pickRandom(t.run));
       } else {
         stateMachine.forceState('happy');
         showSpeech(t.movingDisabled);
@@ -198,6 +199,48 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   canvas.addEventListener('contextmenu', e => {
     e.preventDefault();
     window.electronAPI.openSettings();
+  });
+
+  // --- File "Eating" (Drag & Drop) ---
+  canvas.addEventListener('dragover', e => {
+    e.preventDefault();
+    e.stopPropagation();
+    stateMachine.forceState('jump'); // Pet hào hứng khi thấy "đồ ăn"
+  });
+
+  canvas.addEventListener('dragleave', () => {
+    stateMachine.transitionTo('idle');
+  });
+
+  canvas.addEventListener('drop', async e => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = e.dataTransfer?.files;
+    if (files && files.length > 0) {
+      const t = translations[currentLanguage];
+      const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
+
+      stateMachine.forceState('eat'); // Chuyển sang animation ăn
+      showSpeech(pickRandom(t.eating));
+
+      const allPaths: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const filePath = window.electronAPI.getPathForFile(file);
+        if (filePath) {
+          allPaths.push(filePath);
+        }
+      }
+
+      if (allPaths.length > 0) {
+        console.log('Overlay: Eating files:', allPaths);
+        const result = await window.electronAPI.eatFile(allPaths);
+        console.log('Overlay: Eat files result:', result);
+      }
+    } else {
+      stateMachine.transitionTo('idle');
+    }
   });
 }
 
@@ -260,7 +303,7 @@ function hideSpeech(): void {
 
 function getRandomPingSpeech(): string {
   const t = translations[currentLanguage];
-  const options = [t.hello, '🐾', '❤️', '✨'];
+  const options = t.pingResponses || [t.hello, '🐾', '❤️', '✨'];
   return options[Math.floor(Math.random() * options.length)];
 }
 

@@ -117,4 +117,9 @@ export function registerIpcHandlers(petManager: PetManager): void {
       win.webContents.send('pet:ping');
     });
   });
+
+  ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, filePaths: string[]) => {
+    console.log('IPC: Received file:eat request for:', filePaths);
+    return petManager.eatFiles(filePaths);
+  });
 }

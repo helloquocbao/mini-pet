@@ -38,8 +38,8 @@ export class OverlayWindow {
       },
     });
 
-    // Click-through mặc định
-    win.setIgnoreMouseEvents(true, { forward: true });
+    // Click-through: Bỏ mặc định để có thể nhận event Drag & Drop
+    // win.setIgnoreMouseEvents(true, { forward: true });
 
     // Load overlay HTML với instanceId trong query param để renderer biết mình là ai
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {

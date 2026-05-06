@@ -45,10 +45,26 @@ export const translations: Record<Language, any> = {
       'Stay hydrated! 🥤',
       'Work is important, but health is first! 🍎'
     ],
-    eating: 'Yum yum! 😋',
-    hello: 'Hello! 👋',
-    exercise: 'Let\'s move! 🐾',
-    run: 'Run away! 🏃‍♂️',
+    eating: [
+      'Yum yum! 😋', 'Delicious! 🍎', 'Tastes like clouds! ✨', 'NOM NOM NOM! 🐾', 'More please! ❤️',
+      'No cap, this is fire! 🔥', 'Sheesh, that\'s tasty!', 'Vibe check: Passed! ✅', 'Hết nước chấm! 🍜',
+      'Fr fr, this hits different! ✨', 'On god, so good! 🙏', 'Rizzing up this snack! 🥨'
+    ],
+    hello: [
+      'Hello! 👋', 'Hi there!', 'Nice to see you!', '🐾', '❤️', '✨', 'What\'s up?',
+      'Slay! ✨', 'Main character energy! 👑', 'Delulu is the solulu! ☁️', 'Vibing... 🎵',
+      'Purr... 💅', 'Looking fly! 🕶️', 'You got Rizz! 🔥', 'Bet! 💯'
+    ],
+    exercise: [
+      'Let\'s move! 🐾', 'Jump jump!', 'Exercise is good!', 'Wheee!', 'I feel energetic! ✨',
+      'Getting that cardio! 🏃‍♂️', 'Healthy vibes only! 🥗', 'Flexing! 💪',
+      'Look at these gains! 🏋️‍♂️', 'Full energy! ⚡'
+    ],
+    run: [
+      'Run away! 🏃‍♂️', 'Catch me if you can!', 'Speed! ⚡', 'Zoom zoom!',
+      'Gotta go fast!', 'Bye Felicia! 👋', 'Running to my dreams! ✨',
+      'I\'m out! ✌️', 'Speedrunning life! 🏃', 'Sus! 🤨'
+    ],
     movingDisabled: 'Moving is disabled!',
     trayControl: '🐾 MiniPet Control',
     trayToggle: 'Show/Hide Pet',
@@ -187,10 +203,26 @@ export const translations: Record<Language, any> = {
       'Nhớ uống đủ nước nhé! 🥤',
       'Sức khỏe là vàng, đừng quên nha! 🍎'
     ],
-    eating: 'Măm măm! Ngon quá! 😋',
-    hello: 'Chào sen nhé! 👋',
-    exercise: 'Vận động tí cho khỏe! 🐾',
-    run: 'Chạy đi chờ chi! 🏃‍♂️',
+    eating: [
+      'Măm măm! Ngon quá! 😋', 'Ngon tuyệt cú mèo! 🍎', 'Vị này lạ thế sen! ✨', 'Măm măm măm! 🐾', 'Thêm miếng nữa đi! ❤️',
+      'Hết nước chấm luôn sen ơi! 🍜', 'Kiwi kiwi! 🥝', 'Đỉnh nóc kịch trần! 🚀', 'Ngon nhức nách! 💪',
+      'Ăn là dính! 🧲', 'Mlem mlem... 👅', 'Cháy phố luôn sen ơi! 🔥'
+    ],
+    hello: [
+      'Chào sen nhé! 👋', 'Hế lô!', 'Rất vui được gặp sen!', '🐾', '❤️', '✨', 'Có gì mới không sen?',
+      'Đúng nhận sai cãi hộ tui cái! 🔮', 'Ăn nói xà lơ quá nha! 😂', 'Gwenchana... 🥲', 'Flexing tí thôi! 😎',
+      'Bất ngờ chưa bà già! 👵', 'Ủa gì dợ? 🤨', 'Mãi keo luôn nha! 🍯', 'Chê! 👎'
+    ],
+    exercise: [
+      'Vận động tí cho khỏe! 🐾', 'Nhảy đi chờ chi!', 'Tập thể dục thôi!', 'Vui quá xá!', 'Đang tràn đầy năng lượng đây! ✨',
+      'Lên là lên luôn! 🚀', 'Khỏe như vâm! 💪', 'Sen thấy tui đỉnh không?',
+      'Ra dẻ quá à! 🙄', 'Ét ô ét! 🆘', 'Nhìn tui múa nè! 💃'
+    ],
+    run: [
+      'Chạy đi chờ chi! 🏃‍♂️', 'Đố sen bắt được tui!', 'Tốc độ ánh sáng! ⚡', 'Vù vù vù!',
+      'Chuồn lẹ không bị bắt! 💨', 'Sen ơi cứu tui! 🆘', 'Lê hấp đường phèn luôn! 🍐',
+      'Mắc gì chửi? 😤', 'Gớt nước mắt luôn! 😭', 'Tới công chuyện rồi! 🚔'
+    ],
     movingDisabled: 'Tính năng di chuyển đang tắt!',
     trayControl: '🐾 Điều khiển MiniPet',
     trayToggle: 'Hiện/Ẩn Thú Cưng',

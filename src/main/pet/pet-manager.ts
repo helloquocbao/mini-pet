@@ -2,7 +2,7 @@
  * PetManager — Central pet management.
  */
 
-import { app } from 'electron';
+import { app, shell } from 'electron';
 import fs from 'fs/promises';
 import path from 'path';
 import { pathToFileURL } from 'url';
@@ -257,6 +257,20 @@ export class PetManager {
     } catch (err) {
       console.error('PetManager: Delete failed:', err);
       throw err;
+    }
+  }
+
+  /** "Ăn" danh sách file (xoá vào thùng rác) */
+  async eatFiles(filePaths: string[]): Promise<{ success: boolean; error?: string }> {
+    try {
+      for (const filePath of filePaths) {
+        await shell.trashItem(filePath);
+        console.log(`PetManager: Eaten (trashed) file: ${filePath}`);
+      }
+      return { success: true };
+    } catch (err: any) {
+      console.error(`PetManager: Failed to eat files:`, err);
+      return { success: false, error: err.message };
     }
   }
 

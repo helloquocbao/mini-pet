@@ -2,7 +2,7 @@
  * Preload script — Context Bridge.
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setActivePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_SET_ACTIVE, slug),
   importPet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_IMPORT),
   deletePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_DELETE, slug),
+  eatFile: (paths: string[]) => ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths),
   
   // Multi-Pet
   getInstanceConfig: (id: string) => ipcRenderer.invoke('pet:get-instance-config', id),
@@ -52,6 +53,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Settings update (listen)
   onSettingsUpdate: (callback: (data: unknown) => void) =>
     ipcRenderer.on(IPC_CHANNELS.SETTINGS_UPDATE, (_event, data) => callback(data)),
+
+  // File utils
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   // Notifications (listen)
   onNotification: (callback: (payload: unknown) => void) =>
