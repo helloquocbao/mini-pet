@@ -6,6 +6,7 @@ export const IPC_CHANNELS = {
   PET_SET_ACTIVE: 'pet:set-active',
   PET_LOAD_SPRITESHEET: 'pet:load-spritesheet',
   PET_IMPORT: 'pet:import',
+  PET_DELETE: 'pet:delete',
 
   // Settings
   SETTINGS_GET: 'settings:get',

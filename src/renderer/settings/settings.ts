@@ -7,7 +7,7 @@ async function initSettings(): Promise<void> {
   const settings = await window.electronAPI.getSettings();
 
   applyTranslations(settings.language || 'en');
-  renderPetGallery(pets, settings.activePetSlug);
+  await renderPetGallery(pets, settings.activePetSlug);
   populateForm(settings);
   setupEventListeners(settings);
   setupPomodoro(settings.language || 'en');
@@ -93,22 +93,52 @@ async function setupPomodoro(lang: Language): Promise<void> {
   });
 }
 
-function renderPetGallery(pets: PetListItem[], activeSlug: string | null): void {
+async function renderPetGallery(pets: PetListItem[], activeSlug: string | null): Promise<void> {
   const gallery = document.getElementById('pet-gallery')!;
   gallery.innerHTML = '';
 
   for (const pet of pets) {
     const card = document.createElement('div');
     card.className = `pet-card ${pet.slug === activeSlug ? 'active' : ''}`;
-    card.innerHTML = `
-      <div class="pet-thumb" style="background-image: url('${pet.thumbnailPath}')"></div>
-      <div class="pet-name">${pet.displayName}</div>
-    `;
+    
+    // Create thumb and name
+    const thumb = document.createElement('div');
+    thumb.className = 'pet-thumb';
+    thumb.style.backgroundImage = `url('${pet.thumbnailPath}')`;
+    
+    const name = document.createElement('div');
+    name.className = 'pet-name';
+    name.textContent = pet.displayName;
+    
+    card.appendChild(thumb);
+    card.appendChild(name);
+
+    // Add delete button if not default
+    if (!pet.isDefault) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'delete-pet-btn';
+      deleteBtn.innerHTML = '×';
+      
+      const settings = await window.electronAPI.getSettings();
+      const lang = (settings.language || 'en') as Language;
+      const t = translations[lang];
+      deleteBtn.title = t.deletePet;
+
+      deleteBtn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent card selection
+        if (confirm(`${t.deletePet} ${pet.displayName}?`)) {
+          const updatedPets = await window.electronAPI.deletePet(pet.slug);
+          const currentSettings = await window.electronAPI.getSettings();
+          await renderPetGallery(updatedPets, currentSettings.activePetSlug);
+        }
+      });
+      card.appendChild(deleteBtn);
+    }
 
     card.addEventListener('click', async () => {
       await window.electronAPI.setActivePet(pet.slug);
       const updatedPets = await window.electronAPI.getPetList();
-      renderPetGallery(updatedPets, pet.slug);
+      await renderPetGallery(updatedPets, pet.slug);
     });
 
     gallery.appendChild(card);
@@ -168,7 +198,7 @@ function setupEventListeners(settings: UserSettings): void {
     const newList = await window.electronAPI.importPet();
     if (newList) {
       const settings = await window.electronAPI.getSettings();
-      renderPetGallery(newList, settings.activePetSlug);
+      await renderPetGallery(newList, settings.activePetSlug);
     }
   });
 }

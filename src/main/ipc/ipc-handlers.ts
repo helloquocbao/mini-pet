@@ -24,6 +24,17 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     return null;
   });
 
+  ipcMain.handle(IPC_CHANNELS.PET_DELETE, async (_event, slug: string) => {
+    const result = await petManager.deletePet(slug);
+    const settings = petManager.getSettings();
+    const activePet = petManager.getActivePet();
+
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send(IPC_CHANNELS.SETTINGS_UPDATE, { settings, activePet });
+    });
+    return result;
+  });
+
   ipcMain.handle(IPC_CHANNELS.PET_GET_LIST, async () => {
     return petManager.getInstalledPets();
   });

@@ -20,6 +20,7 @@ export class PetManager {
 
   private overlayWindow: any;
   private settingsWindow: any;
+  private defaultPetSlugs: string[] = [];
 
   constructor() {
     this.loader = new PetLoader();
@@ -62,6 +63,7 @@ export class PetManager {
       description: p.manifest.description,
       thumbnailPath: pathToFileURL(p.spritesheetPath).href, // Dùng spritesheet làm thumbnail
       isActive: p.manifest.slug === this.settings.activePetSlug,
+      isDefault: this.defaultPetSlugs.includes(p.manifest.slug),
     }));
   }
 
@@ -154,6 +156,37 @@ export class PetManager {
     }
   }
 
+  /** Xoá Pet đã nhập */
+  async deletePet(slug: string): Promise<PetListItem[]> {
+    try {
+      if (this.defaultPetSlugs.includes(slug)) {
+        throw new Error('Cannot delete default pet');
+      }
+
+      const targetPath = path.join(this.petsDir, slug);
+      await fs.rm(targetPath, { recursive: true, force: true });
+      console.log(`PetManager: Deleted pet ${slug} from ${targetPath}`);
+
+      // Nếu pet đang xoá là pet active, đổi sang pet đầu tiên còn lại
+      if (this.settings.activePetSlug === slug) {
+        this.pets = await this.loader.scanPetsDirectory(this.petsDir);
+        if (this.pets.length > 0) {
+          await this.setActivePet(this.pets[0].manifest.slug);
+        } else {
+          this.settings.activePetSlug = '';
+          await this.saveSettings();
+        }
+      } else {
+        this.pets = await this.loader.scanPetsDirectory(this.petsDir);
+      }
+
+      return this.getInstalledPets();
+    } catch (err) {
+      console.error('PetManager: Delete failed:', err);
+      throw err;
+    }
+  }
+
   // --- Private ---
 
   private async copyDefaultPets(): Promise<void> {
@@ -166,7 +199,14 @@ export class PetManager {
         : path.join(process.resourcesPath, 'default-pets');
 
       await fs.cp(sourceDir, this.petsDir, { recursive: true });
-      console.log('Default pets copied to', this.petsDir);
+      
+      // Lưu danh sách default slugs
+      const entries = await fs.readdir(sourceDir, { withFileTypes: true });
+      this.defaultPetSlugs = entries
+        .filter(e => e.isDirectory())
+        .map(e => e.name);
+      
+      console.log('Default pets copied to', this.petsDir, 'Slugs:', this.defaultPetSlugs);
     } catch (err) {
       console.error('Failed to copy default pets:', err);
     }

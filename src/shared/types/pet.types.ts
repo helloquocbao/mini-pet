@@ -72,4 +72,5 @@ export interface PetListItem {
   /** Thumbnail preview (base64 hoặc path) */
   thumbnailPath: string;
   isActive: boolean;
+  isDefault: boolean;
 }

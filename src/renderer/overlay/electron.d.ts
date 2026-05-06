@@ -4,7 +4,9 @@ export interface ElectronAPI {
   setActivePet: (slug: string) => Promise<void>;
   loadSpritesheet: (petSlug: string) => Promise<string>;
   getSettings: () => Promise<any>;
-  updateSettings: (settings: Record<string, any>) => Promise<void>;
+  updateSettings: (settings: Partial<any>) => Promise<void>;
+  importPet: () => Promise<any[]>;
+  deletePet: (slug: string) => Promise<any[]>;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
   moveWindow: (deltaX: number, deltaY: number) => void;
   resizeWindow: (width: number, height: number) => void;
