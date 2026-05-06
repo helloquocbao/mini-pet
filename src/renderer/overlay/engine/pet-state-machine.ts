@@ -22,10 +22,11 @@ export class PetStateMachine {
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private scale: number = 1.0;
 
-  // State rules cho Pet "Lười"
+  // State rules cho Pet behavior
   private rules: Partial<Record<PetState, StateRule>> = {
     idle: { minDuration: 15000, maxDuration: 40000, transitions: ['sleep', 'walk'] },
-    walk: { minDuration: 5000, maxDuration: 20000, transitions: ['idle'] }, // Đi bộ lâu hơn (5-20 giây)
+    walk: { minDuration: 5000, maxDuration: 20000, transitions: ['idle'] },
+    run: { minDuration: 5000, maxDuration: 10000, transitions: ['idle'] }, // Chạy mệt rồi thì nghỉ (5-10 giây)
     sleep: { minDuration: 20000, maxDuration: 60000, transitions: ['idle'] },
   };
 
