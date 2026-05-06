@@ -23,6 +23,7 @@ export const DEFAULT_ANIMATIONS: Record<
   sleep: { row: 6, frameCount: 6, fps: 1, loop: true },
   notify: { row: 3, frameCount: 4, fps: 4, loop: false },
   happy: { row: 3, frameCount: 4, fps: 5, loop: false },
+  eat: { row: 7, frameCount: 8, fps: 12, loop: false },
 };
 
 /** Overlay window dimensions (Vừa đủ cho Pet 2x: 384x416) */

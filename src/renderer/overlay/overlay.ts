@@ -71,7 +71,7 @@ async function init(): Promise<void> {
       showSpeech(state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
     }
   });
-  
+
   window.electronAPI.onPetSay((text: string) => {
     showSpeech(text);
   });
@@ -192,6 +192,41 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     e.preventDefault();
     window.electronAPI.openSettings();
   });
+
+  // --- Drag and Drop (Eating Files) ---
+  canvas.addEventListener('dragover', (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  });
+
+  canvas.addEventListener('drop', async (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const files = e.dataTransfer?.files;
+    if (!files || files.length === 0) return;
+
+    const paths = Array.from(files).map((f: File) => window.electronAPI.getPathForFile(f));
+    const validPaths = paths.filter(p => p && p.trim() !== '');
+    
+    if (validPaths.length === 0) return;
+
+    console.log('Pet is eating files:', validPaths);
+
+    // Hiệu ứng ăn
+    stateMachine.forceState('eat');
+    const t = translations[currentLanguage];
+    showSpeech(t.eating || 'Yum yum! 😋', 3000);
+
+    // Gọi main process để xoá
+    const result = await window.electronAPI.eatFile(validPaths);
+    if (!result.success) {
+      console.error('Failed to eat files:', result.error);
+    }
+  });
 }
 
 function showSpeech(text: string, duration: number = 4000): void {
@@ -209,14 +244,14 @@ function showSpeech(text: string, duration: number = 4000): void {
   bubble.style.padding = `${Math.ceil(4 * safeScale)}px ${Math.ceil(8 * safeScale)}px`;
   bubble.style.borderRadius = `${Math.ceil(12 * safeScale)}px`;
   bubble.style.maxWidth = `${winWidth}px`;
-  
+
   // GHIM BONG BÓNG LÊN ĐỈNH CỬA SỔ (Dịch xuống 15px cho cân đối)
   bubble.style.top = '15px';
   bubble.style.bottom = 'auto';
 
   bubble.textContent = text;
   bubble.classList.add('visible');
-  
+
   speechTimeout = setTimeout(hideSpeech, duration);
 }
 
@@ -224,7 +259,7 @@ function hideSpeech(): void {
   const bubble = document.getElementById('speech-bubble');
   if (bubble) bubble.classList.remove('visible');
   isSpeechVisible = false;
-  
+
   // Co khung lại ngay lập tức hoặc sau một chút để khớp với UI
   setTimeout(() => {
     if (!isSpeechVisible) syncWindowSize();
@@ -248,7 +283,7 @@ function syncWindowSize(): void {
 
   // 3. Headroom: Nếu có tin nhắn thì chừa 60px, nếu không thì 0px
   const headroom = isSpeechVisible ? Math.max(50, Math.ceil(60 * safeScale)) : 0;
-  
+
   const canvas = document.getElementById('pet-canvas');
   if (canvas) {
     canvas.style.top = `${headroom}px`;

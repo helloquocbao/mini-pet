@@ -31,6 +31,8 @@ export interface ElectronAPI {
   getPomoState: () => Promise<any>;
   onPomoTick: (cb: (state: any) => void) => void;
   onPetSay: (cb: (text: string) => void) => void;
+  eatFile: (paths: string[]) => Promise<{ success: boolean; error?: string }>;
+  getPathForFile: (file: File) => string;
 }
 
 declare global {

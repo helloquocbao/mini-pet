@@ -2,7 +2,7 @@
  * IPC Handlers — Đăng ký tất cả ipcMain.handle và ipcMain.on.
  */
 
-import { ipcMain, BrowserWindow, dialog } from 'electron';
+import { ipcMain, BrowserWindow, dialog, shell } from 'electron';
 import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { PetManager } from '../pet/pet-manager';
 import { UserSettings } from '../../shared/types/settings.types';
@@ -141,6 +141,18 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
 
   ipcMain.on('window:save-position', (_event, x: number, y: number) => {
     petManager.updatePosition(x, y);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, paths: string[]) => {
+    try {
+      for (const path of paths) {
+        await shell.trashItem(path);
+      }
+      return { success: true };
+    } catch (err) {
+      console.error('Failed to eat files:', err);
+      return { success: false, error: String(err) };
+    }
   });
 
   ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {

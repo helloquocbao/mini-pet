@@ -8,7 +8,8 @@ export type PetState =
   | 'drag'
   | 'sleep'
   | 'notify'
-  | 'happy';
+  | 'happy'
+  | 'eat';
 
 /** Cấu hình animation cho 1 state */
 export interface AnimationConfig {

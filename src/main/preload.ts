@@ -2,7 +2,7 @@
  * Preload script — Context Bridge.
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -20,6 +20,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStopAlarm: (cb: any) => ipcRenderer.on('pet:stop-alarm', () => cb()),
   loadSpritesheet: (petSlug: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PET_LOAD_SPRITESHEET, petSlug),
+  eatFile: (paths: string[]) => ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths),
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   // --- Pomodoro ---
   startPomo: (focus: number, breakMin: number) => ipcRenderer.send('pomo:start', focus, breakMin),

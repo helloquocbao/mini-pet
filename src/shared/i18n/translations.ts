@@ -41,6 +41,7 @@ export const translations: Record<Language, any> = {
       'Stay hydrated! 🥤',
       'Work is important, but health is first! 🍎'
     ],
+    eating: 'Yum yum! 😋',
     hello: 'Hello! 👋',
     exercise: 'Let\'s move! 🐾',
     run: 'Run away! 🏃‍♂️',
@@ -177,6 +178,7 @@ export const translations: Record<Language, any> = {
       'Nhớ uống đủ nước nhé! 🥤',
       'Sức khỏe là vàng, đừng quên nha! 🍎'
     ],
+    eating: 'Măm măm! Ngon quá! 😋',
     hello: 'Chào sen nhé! 👋',
     exercise: 'Vận động tí cho khỏe! 🐾',
     run: 'Chạy đi chờ chi! 🏃‍♂️',
@@ -314,6 +316,7 @@ export const translations: Record<Language, any> = {
       'Hydrate-toi ! 🥤',
       'La santé avant tout ! 🍎'
     ],
+    eating: 'Miam miam ! 😋',
     hello: 'Salut ! 👋',
     exercise: 'Bougeons un peu ! 🐾',
     run: 'En avant ! 🏃‍♂️',
@@ -363,6 +366,7 @@ export const translations: Record<Language, any> = {
       '保持水分！ 🥤',
       '健康第一，工作第二！ 🍎'
     ],
+    eating: '真好吃！ 😋',
     hello: '你好！ 👋',
     exercise: '运动一下！ 🐾',
     run: '跑起来！ 🏃‍♂️',
@@ -412,6 +416,7 @@ export const translations: Record<Language, any> = {
       'Rimani idratato! 🥤',
       'La salute è importante! 🍎'
     ],
+    eating: 'Gnam gnam! 😋',
     hello: 'Ciao! 👋',
     exercise: 'Muoviamoci un po\'! 🐾',
     run: 'Scappa! 🏃‍♂️',

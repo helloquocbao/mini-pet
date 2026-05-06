@@ -21,6 +21,7 @@ export const IPC_CHANNELS = {
   NOTIFICATION_DISMISS: 'notification:dismiss',
   // Intelligence
   PET_SAY: 'pet:say',
+  FILE_EAT: 'file:eat',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];
