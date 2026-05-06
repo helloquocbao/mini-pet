@@ -199,28 +199,24 @@ function showSpeech(text: string, duration: number = 4000): void {
   if (!bubble) return;
   if (speechTimeout) clearTimeout(speechTimeout);
 
-  const safeScale = Number(currentScale) || 1.0;
-  const winWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 20;
+  isSpeechVisible = true;
+  syncWindowSize(); // Giãn khung hình ra trước
 
-  // Cập nhật style bong bóng linh hoạt theo Scale
+  const safeScale = Number(currentScale) || 1.0;
+  const winWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale);
+
   bubble.style.fontSize = `${Math.max(10, Math.ceil(14 * safeScale))}px`;
-  bubble.style.padding = `${Math.ceil(6 * safeScale + 2)}px ${Math.ceil(12 * safeScale + 4)}px`;
-  bubble.style.borderRadius = `${Math.ceil(12 * safeScale + 6)}px`;
-  bubble.style.maxWidth = `${winWidth - 10}px`;
+  bubble.style.padding = `${Math.ceil(4 * safeScale)}px ${Math.ceil(8 * safeScale)}px`;
+  bubble.style.borderRadius = `${Math.ceil(12 * safeScale)}px`;
+  bubble.style.maxWidth = `${winWidth}px`;
   
-  // Tính toán để ghim sát cạnh trên của khung Pet (vùng màu vàng)
-  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale) + 20;
-  bubble.style.bottom = `${petHeight + 20 + 2}px`; // Cách cạnh trên khung đúng 2px
-  bubble.style.top = 'auto';
-  
-  // Đồng bộ kích thước đuôi tam giác
-  bubble.style.setProperty('--tail-size', `${Math.max(4, Math.ceil(8 * safeScale))}px`);
+  // GHIM BONG BÓNG LÊN ĐỈNH CỬA SỔ (Dịch xuống 15px cho cân đối)
+  bubble.style.top = '15px';
+  bubble.style.bottom = 'auto';
 
   bubble.textContent = text;
   bubble.classList.add('visible');
-  isSpeechVisible = true;
-  syncWindowSize();
-
+  
   speechTimeout = setTimeout(hideSpeech, duration);
 }
 
@@ -228,7 +224,12 @@ function hideSpeech(): void {
   const bubble = document.getElementById('speech-bubble');
   if (bubble) bubble.classList.remove('visible');
   isSpeechVisible = false;
-  syncWindowSize();
+  
+  // Co khung lại ngay lập tức hoặc sau một chút để khớp với UI
+  setTimeout(() => {
+    if (!isSpeechVisible) syncWindowSize();
+  }, 200);
+
   if (speechTimeout) {
     clearTimeout(speechTimeout);
     speechTimeout = null;
@@ -239,26 +240,25 @@ function hideSpeech(): void {
 function syncWindowSize(): void {
   const safeScale = Number(currentScale) || 1.0;
 
-  // Chiều rộng Pet thực tế (Vừa khít hơn với hình)
-  const width = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 60;
+  // 1. Chiều rộng: Ép sát nhất có thể
+  const width = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 4;
 
-  // Chiều cao Pet thực tế (có padding 20px)
-  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale) + 20;
+  // 2. Chiều cao Pet thực tế
+  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale);
 
-  // Khoảng trống phía trên cho bong bóng (Headroom) - Tăng thêm để message thoải mái
-  const headroom = Math.max(100, Math.ceil(150 * safeScale) + 20);
-  console.log(`SyncSize: Scale=${safeScale}, Headroom=${headroom}`);
-
-  // Cập nhật vị trí Pet trong CSS
+  // 3. Headroom: Nếu có tin nhắn thì chừa 60px, nếu không thì 0px
+  const headroom = isSpeechVisible ? Math.max(50, Math.ceil(60 * safeScale)) : 0;
+  
   const canvas = document.getElementById('pet-canvas');
   if (canvas) {
     canvas.style.top = `${headroom}px`;
   }
 
-  // Vậy chiều cao cửa sổ cần là headroom + petHeight + margin đáy
-  const totalHeight = headroom + petHeight + 20;
+  // 4. Tổng chiều cao
+  const totalHeight = headroom + petHeight + 4;
 
-  window.electronAPI.resizeWindow(width, totalHeight);
+  // SỬ DỤNG anchorBottom = true ĐỂ GIỮ PET ĐỨNG YÊN TRÊN MÀN HÌNH
+  window.electronAPI.resizeWindow(width, totalHeight, true);
 }
 
 function getRandomPingSpeech(): string {

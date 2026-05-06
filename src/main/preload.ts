@@ -38,7 +38,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
     ipcRenderer.send(IPC_CHANNELS.WINDOW_SET_IGNORE_MOUSE, ignore, options),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
-  resizeWindow: (width: number, height: number) => ipcRenderer.send('window:resize', width, height),
+  resizeWindow: (width: number, height: number, anchorBottom?: boolean) =>
+    ipcRenderer.send('window:resize', width, height, anchorBottom),
   savePosition: (x: number, y: number) => ipcRenderer.send('window:save-position', x, y),
   openSettings: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_OPEN_SETTINGS),
 

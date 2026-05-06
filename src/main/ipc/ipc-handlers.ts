@@ -114,7 +114,7 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     }
   });
 
-  ipcMain.on('window:resize', (_event, width: number, height: number) => {
+  ipcMain.on('window:resize', (_event, width: number, height: number, anchorBottom?: boolean) => {
     const win = BrowserWindow.fromWebContents(_event.sender);
     if (win) {
       const [oldW, oldH] = win.getSize();
@@ -123,8 +123,19 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
 
       if (newWidth === oldW && newHeight === oldH) return;
 
-      // Khi resize xuống dưới (Top-aligned), không cần chỉnh Y, rất mượt.
-      win.setSize(newWidth, newHeight);
+      if (anchorBottom) {
+        // Neo vào đáy: Dịch chuyển Y lên trên một khoảng bằng độ chênh lệch chiều cao
+        const [x, y] = win.getPosition();
+        const deltaH = newHeight - oldH;
+        win.setBounds({
+          x: Math.round(x),
+          y: Math.round(y - deltaH),
+          width: newWidth,
+          height: newHeight
+        });
+      } else {
+        win.setSize(newWidth, newHeight);
+      }
     }
   });
 

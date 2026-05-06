@@ -9,7 +9,7 @@ export interface ElectronAPI {
   deletePet: (slug: string) => Promise<any[]>;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
   moveWindow: (deltaX: number, deltaY: number) => void;
-  resizeWindow: (width: number, height: number) => void;
+  resizeWindow: (width: number, height: number, anchorBottom?: boolean) => void;
   openSettings: () => void;
   onSettingsUpdate: (callback: (data: any) => void) => void;
   onNotification: (callback: (payload: any) => void) => void;

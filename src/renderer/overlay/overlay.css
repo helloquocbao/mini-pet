@@ -17,11 +17,12 @@ body {
 
 #pet-canvas {
   position: absolute;
-  top: 60px; /* Neo Pet cách đỉnh 60px */
+  top: 0; 
   left: 50%;
   transform: translateX(-50%);
   display: block;
   cursor: pointer;
+  z-index: 10;
 }
 
 /* --- Speech Bubble (Bong bóng lời thoại) --- */
@@ -81,6 +82,12 @@ body {
 }
 
 /* --- Notifications (Thông báo hệ thống - nếu có) --- */
+#pet-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .notify-sign {
   position: absolute;
   top: 10px;
