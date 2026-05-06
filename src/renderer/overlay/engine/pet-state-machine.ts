@@ -15,6 +15,10 @@ export class PetStateMachine {
   private currentState: PetState = 'idle';
   private controller: AnimationController;
   private animations: Record<string, AnimationConfig>;
+
+  getState(): PetState {
+    return this.currentState;
+  }
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private scale: number = 1.0;
 

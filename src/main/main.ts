@@ -3,7 +3,6 @@
  */
 
 import { app, BrowserWindow, ipcMain } from 'electron';
-import path from 'path';
 import { OverlayWindow } from './windows/overlay-window';
 import { SystemTray } from './tray/system-tray';
 import { registerIpcHandlers } from './ipc/ipc-handlers';
@@ -12,8 +11,6 @@ import { SettingsWindow } from './windows/settings-window';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 import started from 'electron-squirrel-startup';
 import { PomodoroManager } from './pet/pomodoro-manager';
-import { IntelligenceManager } from './pet/intelligence-manager';
-
 
 if (started) {
   app.quit();
@@ -23,45 +20,40 @@ let overlayWindow: OverlayWindow;
 let settingsWindow: SettingsWindow;
 let systemTray: SystemTray;
 let petManager: PetManager;
-let intelManager: IntelligenceManager;
 let isQuitting = false;
 
 app.whenReady().then(async () => {
   // Khởi tạo trình quản lý Pomodoro
   new PomodoroManager();
 
-  // 1. Init pet manager
-  petManager = new PetManager();
-  await petManager.init();
-
-  const settings = await petManager.getSettings();
-
-  // Determine icon path for all platforms
-  const iconExt = process.platform === 'win32' ? 'ico' : 'png';
-  const iconPath = app.isPackaged
-    ? path.join(process.resourcesPath, 'icons', `icon.${iconExt}`)
-    : path.join(app.getAppPath(), `src/assets/icons/icon.${iconExt}`);
-
-  // Set Dock icon for macOS
+  // Ẩn Dock icon trên Mac để app chạy tinh tế hơn
   if (process.platform === 'darwin') {
     app.dock.hide();
-    app.dock.setIcon(iconPath);
   }
 
-  // 2. Create windows
+  // 1. Init managers
+  petManager = new PetManager();
   overlayWindow = new OverlayWindow();
-  overlayWindow.create(settings.lastX, settings.lastY);
-
   settingsWindow = new SettingsWindow();
 
-  // 2.5 Init Intelligence Manager
-  const win = overlayWindow.getWindow();
-  if (win) {
-    intelManager = new IntelligenceManager(win, petManager);
-    intelManager.start();
-  }
+  // 2. Connect managers
+  petManager.setWindowManagers(overlayWindow, settingsWindow);
 
-  // 3. Create system tray
+  // 3. Init pet manager (loads settings)
+  await petManager.init();
+
+  // 4. Register IPC handlers
+  registerIpcHandlers(petManager);
+
+  // Thêm handler riêng để mở cửa sổ settings
+  ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
+    settingsWindow.open();
+  });
+
+  // 5. Spawn all active pets
+  await petManager.spawnSavedPets();
+
+  // 6. Create system tray
   systemTray = new SystemTray({
     onShowSettings: () => {
       settingsWindow.open();
@@ -71,40 +63,29 @@ app.whenReady().then(async () => {
       app.quit();
     },
     onTogglePet: () => {
-      const win = overlayWindow.getWindow();
-      if (win) {
-        if (win.isVisible()) {
-          win.hide();
-        } else {
-          win.show();
-        }
+      const windows = overlayWindow.getAllWindows();
+      if (windows.length > 0) {
+        const anyVisible = windows.some(win => win.isVisible());
+        windows.forEach(win => {
+          if (anyVisible) win.hide();
+          else win.show();
+        });
       }
     },
   });
-  systemTray.create(settings.language);
-
-  // 4. Register IPC handlers
-  registerIpcHandlers(petManager, systemTray);
-
-  // 5. Thêm handler riêng để mở cửa sổ settings
-  ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
-    settingsWindow.open();
-  });
+  systemTray.create();
 });
 
-// macOS: re-create window khi click dock icon
 app.on('activate', () => {
-  if (BrowserWindow.getAllWindows().length === 0 && overlayWindow) {
-    overlayWindow.create();
+  if (overlayWindow && overlayWindow.getAllWindows().length === 0) {
+    petManager.spawnSavedPets();
   }
 });
 
-// KHÔNG quit khi đóng tất cả windows (chạy trong tray)
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     if (!isQuitting) {
-      // Prevent default behavior to keep app running in tray
-      // Note: In some versions of Electron, this might not be needed if tray exists
+      // Prevent default
     } else {
       app.quit();
     }

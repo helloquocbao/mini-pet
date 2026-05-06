@@ -6,6 +6,7 @@ import { SpriteRenderer } from './sprite-renderer';
 
 export class AnimationController {
   private renderer: SpriteRenderer;
+  private instanceId: string;
   private currentConfig: AnimationConfig | null = null;
   private currentFrame: number = 0;
   private lastFrameTime: number = 0;
@@ -15,13 +16,18 @@ export class AnimationController {
   private scale: number = 1.0;
   private direction: number = 1; // 1: Right, -1: Left
 
+  // Multi-Pet: Target for chasing
+  private targetX: number | null = null;
+  private targetY: number | null = null;
+
   // Tích lũy phần dư để di chuyển mượt ở tốc độ thấp
   private accumulatedX: number = 0;
 
   public onAnimationEnd?: (nextState: PetState) => void;
 
-  constructor(renderer: SpriteRenderer) {
+  constructor(renderer: SpriteRenderer, instanceId: string) {
     this.renderer = renderer;
+    this.instanceId = instanceId;
   }
 
   setWalkingEnabled(enabled: boolean): void {
@@ -31,7 +37,23 @@ export class AnimationController {
   /** Cập nhật scale từ bên ngoài */
   setScale(scale: number): void {
     this.scale = scale;
-    this.draw(); // Vẽ lại ngay lập tức với scale mới
+    this.draw(); 
+  }
+
+  /** Lấy vùng bao của pet trên màn hình */
+  getRect() {
+    return {
+      x: window.screenX,
+      y: window.screenY,
+      width: window.innerWidth,
+      height: window.innerHeight
+    };
+  }
+
+  /** Đặt mục tiêu đuổi bắt */
+  setTarget(x: number, y: number): void {
+    this.targetX = x;
+    this.targetY = y;
   }
 
   /** Play animation cho state cụ thể */
@@ -43,9 +65,7 @@ export class AnimationController {
     this.isPlaying = true;
     this.lastFrameTime = performance.now();
 
-    // Draw first frame immediately
     this.draw();
-
     this.loop();
   }
 
@@ -91,27 +111,38 @@ export class AnimationController {
         const speed = (this.currentConfig.speed || 0.9) * this.scale;
         
         if (window.electronAPI && window.electronAPI.moveWindow) {
-          // KIỂM TRA BIÊN MÀN HÌNH ĐỂ QUAY ĐẦU
           const winX = window.screenX;
           const screenW = window.screen.availWidth;
           const winW = window.innerWidth;
 
-          if ((this.direction === -1 && winX <= 0) || 
-              (this.direction === 1 && winX + winW >= screenW)) {
-            this.direction *= -1;
-            this.accumulatedX = 0; // Reset tích lũy khi đổi chiều
+          // Multi-Pet: Đuổi theo mục tiêu nếu có
+          if (this.targetX !== null) {
+            const centerX = winX + winW / 2;
+            if (this.targetX < centerX - 50) {
+              this.direction = -1;
+            } else if (this.targetX > centerX + 50) {
+              this.direction = 1;
+            } else {
+              // Đã đến gần mục tiêu
+              this.targetX = null;
+            }
+          } else {
+            // Đi ngẫu nhiên: KIỂM TRA BIÊN MÀN HÌNH ĐỂ QUAY ĐẦU
+            if ((this.direction === -1 && winX <= 0) || 
+                (this.direction === 1 && winX + winW >= screenW)) {
+              this.direction *= -1;
+              this.accumulatedX = 0;
+            }
           }
 
           // Tích lũy phần dư (speed * direction)
           this.accumulatedX += speed * this.direction;
 
-          // Thực hiện di chuyển khi tích lũy đủ >= 1 pixel
           const actualMoveX = Math.trunc(this.accumulatedX);
           if (Math.abs(actualMoveX) >= 1) {
             window.electronAPI.moveWindow(actualMoveX, 0);
             this.accumulatedX -= actualMoveX;
-            // Lưu vị trí để nhớ tọa độ
-            window.electronAPI.savePosition(window.screenX, window.screenY);
+            window.electronAPI.savePosition(this.instanceId, window.screenX, window.screenY);
           }
         }
       }

@@ -9,12 +9,20 @@ let currentScale = 1.0;
 let isSpeechVisible = false;
 let speechTimeout: any = null;
 let currentLanguage: Language = 'en';
+let instanceId: string | null = null;
 
 async function init(): Promise<void> {
+  const params = new URLSearchParams(window.location.search);
+  instanceId = params.get('id');
+  if (!instanceId) {
+    console.error('Overlay: No instanceId provided.');
+    return;
+  }
+
   const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
 
-  // 1. Lấy active pet data từ main process
-  const petData: any = await window.electronAPI.getActivePet();
+  // 1. Lấy pet config theo ID
+  const petData: any = await window.electronAPI.getInstanceConfig(instanceId);
   if (!petData) return;
 
   // 2. Khởi tạo renderer
@@ -35,11 +43,11 @@ async function init(): Promise<void> {
 
   // 4. Khởi tạo animation
   const savedSettings: any = await window.electronAPI.getSettings();
-  const initialScale = Number(savedSettings?.scale) || 1.0;
+  const initialScale = Number(petData.scale || savedSettings?.scale) || 1.0;
   const isWalkingEnabled = savedSettings?.enableWalking !== false;
   currentLanguage = savedSettings?.language || 'en';
 
-  const controller = new AnimationController(renderer);
+  const controller = new AnimationController(renderer, instanceId!);
   const stateMachine = new PetStateMachine(controller, initialScale, isWalkingEnabled);
   controller.setWalkingEnabled(isWalkingEnabled);
   stateMachine.start();
@@ -48,6 +56,20 @@ async function init(): Promise<void> {
 
   // Khởi tạo kích thước cửa sổ
   syncWindowSize();
+
+  // --- Multi-Pet: Chasing Logic ---
+  window.electronAPI.onPositionsUpdate((data: any) => {
+    const { positions } = data;
+    // Tìm các pet khác (loại trừ chính mình)
+    const otherPets = positions.filter((p: any) => p.id !== instanceId);
+    if (otherPets.length > 0) {
+      // Có 5% cơ hội Pet sẽ muốn "đuổi theo" một bạn khác nếu đang đi bộ
+      if (Math.random() < 0.05 && stateMachine.getState() === 'walk') {
+        const target = otherPets[Math.floor(Math.random() * otherPets.length)];
+        controller.setTarget(target.x, target.y);
+      }
+    }
+  });
 
   // --- Events ---
   window.electronAPI.onPing(() => {
@@ -72,34 +94,21 @@ async function init(): Promise<void> {
     }
   });
 
-  window.electronAPI.onPetSay((text: string) => {
-    showSpeech(text);
-  });
-
   setupRandomSpeech(stateMachine);
 
   // 5. Settings update
-  let currentPetSlug = petData?.slug;
-
   window.electronAPI.onSettingsUpdate(async (data: any) => {
-    const { settings, activePet } = data;
-
-    currentScale = Number(settings.scale) || 1.0;
+    const { settings } = data;
     currentLanguage = settings.language || 'en';
-    stateMachine.setScale(currentScale);
-    stateMachine.setWalkingEnabled(settings.enableWalking);
-    controller.setWalkingEnabled(settings.enableWalking);
-
-    // Cập nhật kích thước cửa sổ - Vì là Top-aligned nên cực kỳ mượt!
-    syncWindowSize();
-
-    if (settings.activePetSlug !== currentPetSlug && activePet) {
-      try {
-        await renderer.loadSpritesheet(activePet.spritesheetPath);
-        currentPetSlug = settings.activePetSlug;
-      } catch (err) {
-        console.error('Failed to switch pet:', err);
-      }
+    
+    // Tìm cấu hình instance của mình trong settings mới
+    const myInstance = settings.activePets.find((p: any) => p.id === instanceId);
+    if (myInstance) {
+      currentScale = myInstance.scale || settings.scale;
+      stateMachine.setScale(currentScale);
+      stateMachine.setWalkingEnabled(settings.enableWalking);
+      controller.setWalkingEnabled(settings.enableWalking);
+      syncWindowSize();
     }
   });
 
@@ -141,7 +150,9 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     if (isDragging) {
       isDragging = false;
       stateMachine.transitionTo('idle');
-      window.electronAPI.savePosition(window.screenX, window.screenY);
+      if (instanceId) {
+        window.electronAPI.savePosition(instanceId, window.screenX, window.screenY);
+      }
     }
   });
 
@@ -159,20 +170,18 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
 
     clickCount++;
     if (clickTimer) clearTimeout(clickTimer);
-    console.log(`Renderer: Click detected. Count: ${clickCount}`);
 
     const t = translations[currentLanguage];
 
-    // Phản hồi tức thì cho từng số lần click (Quy ước: Click 1 -> Dòng 4, Click 2 -> Dòng 5, Click 3+ -> Dòng 8)
     if (clickCount === 1) {
-      stateMachine.forceState('happy'); // Dòng 4 (Row 3)
+      stateMachine.forceState('happy');
       showSpeech(t.hello);
     } else if (clickCount === 2) {
-      stateMachine.forceState('jump'); // Dòng 5 (Row 4)
+      stateMachine.forceState('jump');
       showSpeech(t.exercise);
     } else if (clickCount >= 3) {
       if (stateMachine.getWalkingEnabled()) {
-        stateMachine.forceState('run'); // Dòng 8 (Row 7)
+        stateMachine.forceState('run');
         showSpeech(t.run);
       } else {
         stateMachine.forceState('happy');
@@ -180,9 +189,7 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       }
     }
 
-    // Timer chỉ dùng để reset bộ đếm sau khi người dùng ngừng click
     clickTimer = setTimeout(() => {
-      console.log(`Renderer: Click sequence finished. Final count: ${clickCount}`);
       clickCount = 0;
       clickTimer = null;
     }, 600);
@@ -192,41 +199,26 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     e.preventDefault();
     window.electronAPI.openSettings();
   });
+}
 
-  // --- Drag and Drop (Eating Files) ---
-  canvas.addEventListener('dragover', (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.dataTransfer) {
-      e.dataTransfer.dropEffect = 'copy';
-    }
-  });
+/** Tự động cân chỉnh kích thước cửa sổ để không bị xén hình */
+function syncWindowSize(): void {
+  const safeScale = Number(currentScale) || 1.0;
+  
+  // Chỉ thêm headroom nếu đang hiện lời thoại
+  const baseHeadroom = 60;
+  const headroom = isSpeechVisible ? Math.max(60, Math.ceil(baseHeadroom * safeScale)) : 0;
+  
+  const petWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale);
+  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale);
+  
+  // Chiều cao tổng = headroom + chiều cao pet
+  const totalHeight = headroom + petHeight;
+  
+  // Chiều rộng: Nếu có lời thoại thì rộng hơn (300), nếu không thì khít petWidth
+  const totalWidth = isSpeechVisible ? Math.max(300, petWidth + 40) : petWidth;
 
-  canvas.addEventListener('drop', async (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const files = e.dataTransfer?.files;
-    if (!files || files.length === 0) return;
-
-    const paths = Array.from(files).map((f: File) => window.electronAPI.getPathForFile(f));
-    const validPaths = paths.filter(p => p && p.trim() !== '');
-    
-    if (validPaths.length === 0) return;
-
-    console.log('Pet is eating files:', validPaths);
-
-    // Hiệu ứng ăn
-    stateMachine.forceState('eat');
-    const t = translations[currentLanguage];
-    showSpeech(t.eating || 'Yum yum! 😋', 3000);
-
-    // Gọi main process để xoá
-    const result = await window.electronAPI.eatFile(validPaths);
-    if (!result.success) {
-      console.error('Failed to eat files:', result.error);
-    }
-  });
+  window.electronAPI.resizeWindow(totalWidth, totalHeight);
 }
 
 function showSpeech(text: string, duration: number = 4000): void {
@@ -235,7 +227,7 @@ function showSpeech(text: string, duration: number = 4000): void {
   if (speechTimeout) clearTimeout(speechTimeout);
 
   isSpeechVisible = true;
-  syncWindowSize(); // Giãn khung hình ra trước
+  syncWindowSize();
 
   const safeScale = Number(currentScale) || 1.0;
   const winWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale);
@@ -244,14 +236,11 @@ function showSpeech(text: string, duration: number = 4000): void {
   bubble.style.padding = `${Math.ceil(4 * safeScale)}px ${Math.ceil(8 * safeScale)}px`;
   bubble.style.borderRadius = `${Math.ceil(12 * safeScale)}px`;
   bubble.style.maxWidth = `${winWidth}px`;
-
-  // GHIM BONG BÓNG LÊN ĐỈNH CỬA SỔ (Dịch xuống 15px cho cân đối)
   bubble.style.top = '15px';
   bubble.style.bottom = 'auto';
 
   bubble.textContent = text;
   bubble.classList.add('visible');
-
   speechTimeout = setTimeout(hideSpeech, duration);
 }
 
@@ -259,8 +248,6 @@ function hideSpeech(): void {
   const bubble = document.getElementById('speech-bubble');
   if (bubble) bubble.classList.remove('visible');
   isSpeechVisible = false;
-
-  // Co khung lại ngay lập tức hoặc sau một chút để khớp với UI
   setTimeout(() => {
     if (!isSpeechVisible) syncWindowSize();
   }, 200);
@@ -271,45 +258,22 @@ function hideSpeech(): void {
   }
 }
 
-/** Đồng bộ kích thước cửa sổ dựa trên Scale và trạng thái lời thoại */
-function syncWindowSize(): void {
-  const safeScale = Number(currentScale) || 1.0;
-
-  // 1. Chiều rộng: Ép sát nhất có thể
-  const width = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale) + 4;
-
-  // 2. Chiều cao Pet thực tế
-  const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale);
-
-  // 3. Headroom: Nếu có tin nhắn thì chừa 60px, nếu không thì 0px
-  const headroom = isSpeechVisible ? Math.max(50, Math.ceil(60 * safeScale)) : 0;
-
-  const canvas = document.getElementById('pet-canvas');
-  if (canvas) {
-    canvas.style.top = `${headroom}px`;
-  }
-
-  // 4. Tổng chiều cao
-  const totalHeight = headroom + petHeight + 4;
-
-  // SỬ DỤNG anchorBottom = true ĐỂ GIỮ PET ĐỨNG YÊN TRÊN MÀN HÌNH
-  window.electronAPI.resizeWindow(width, totalHeight, true);
-}
-
 function getRandomPingSpeech(): string {
-  const responses = translations[currentLanguage].pingResponses;
-  return responses[Math.floor(Math.random() * responses.length)];
+  const t = translations[currentLanguage];
+  const options = [t.hello, '🐾', '❤️', '✨'];
+  return options[Math.floor(Math.random() * options.length)];
 }
 
 function setupRandomSpeech(stateMachine: PetStateMachine): void {
-  const scheduleNext = () => {
-    setTimeout(() => {
-      const speeches = translations[currentLanguage].randomSpeeches;
-      showSpeech(speeches[Math.floor(Math.random() * speeches.length)]);
-      scheduleNext();
-    }, (Math.random() * 3 + 2) * 60 * 1000);
-  };
-  scheduleNext();
+  setInterval(() => {
+    if (!isSpeechVisible && !isAlarming && Math.random() < 0.1) {
+      const state = stateMachine.getState();
+      const t = translations[currentLanguage];
+      if (state === 'idle') showSpeech(t.idleSpeech || '...');
+      else if (state === 'sleep') showSpeech('Zzz...');
+      else if (state === 'walk') showSpeech(t.walkSpeech || '🎶');
+    }
+  }, 15000);
 }
 
 init().catch(console.error);

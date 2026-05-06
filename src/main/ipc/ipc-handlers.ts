@@ -2,14 +2,12 @@
  * IPC Handlers — Đăng ký tất cả ipcMain.handle và ipcMain.on.
  */
 
-import { ipcMain, BrowserWindow, dialog, shell } from 'electron';
+import { ipcMain, BrowserWindow, dialog } from 'electron';
 import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { PetManager } from '../pet/pet-manager';
 import { UserSettings } from '../../shared/types/settings.types';
 
-import { SystemTray } from '../tray/system-tray';
-
-export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTray): void {
+export function registerIpcHandlers(petManager: PetManager): void {
   // --- Pet handlers ---
 
   ipcMain.handle('pet:import', async () => {
@@ -24,56 +22,36 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     return null;
   });
 
-  ipcMain.handle(IPC_CHANNELS.PET_DELETE, async (_event, slug: string) => {
-    const result = await petManager.deletePet(slug);
-    const settings = petManager.getSettings();
-    const activePet = petManager.getActivePet();
-
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send(IPC_CHANNELS.SETTINGS_UPDATE, { settings, activePet });
-    });
-    return result;
-  });
-
   ipcMain.handle(IPC_CHANNELS.PET_GET_LIST, async () => {
     return petManager.getInstalledPets();
   });
 
-  ipcMain.handle(IPC_CHANNELS.PET_GET_ACTIVE, async () => {
-    return petManager.getActivePet();
+  ipcMain.handle(IPC_CHANNELS.PET_DELETE, async (_event, slug: string) => {
+    return petManager.deletePet(slug);
+  });
+
+  /** Lấy config cho 1 pet instance cụ thể */
+  ipcMain.handle('pet:get-instance-config', async (_event, instanceId: string) => {
+    return petManager.getPetInstanceConfig(instanceId);
+  });
+
+  /** Spawn thêm pet mới */
+  ipcMain.handle('pet:spawn', async (_event, slug: string) => {
+    return petManager.spawnPet(slug);
+  });
+
+  /** Xoá một pet instance */
+  ipcMain.handle('pet:remove', async (_event, instanceId: string) => {
+    return petManager.removePet(instanceId);
   });
 
   ipcMain.handle(IPC_CHANNELS.PET_SET_ACTIVE, async (_event, slug: string) => {
-    const result = await petManager.setActivePet(slug);
-    const settings = petManager.getSettings();
-    const activePet = petManager.getActivePet();
-
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send(IPC_CHANNELS.SETTINGS_UPDATE, { settings, activePet });
-    });
-    return result;
+    // Trong Multi-pet, setActive sẽ là spawn thêm một con mới
+    return petManager.spawnPet(slug);
   });
 
   ipcMain.handle(IPC_CHANNELS.PET_LOAD_SPRITESHEET, async (_event, petSlug: string) => {
     return petManager.getSpritesheetURL(petSlug);
-  });
-
-  ipcMain.on('pet:ping', () => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('pet:ping');
-    });
-  });
-
-  ipcMain.on('pet:start-alarm', () => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('pet:start-alarm');
-    });
-  });
-
-  ipcMain.on('pet:stop-alarm', () => {
-    BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('pet:stop-alarm');
-    });
   });
 
   // --- Settings handlers ---
@@ -86,16 +64,6 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     IPC_CHANNELS.SETTINGS_UPDATE,
     async (_event, newSettings: Partial<UserSettings>) => {
       await petManager.updateSettings(newSettings);
-      const settings = petManager.getSettings();
-      const activePet = petManager.getActivePet();
-
-      if (newSettings.language) {
-        systemTray.updateMenu(settings.language);
-      }
-
-      BrowserWindow.getAllWindows().forEach(win => {
-        win.webContents.send(IPC_CHANNELS.SETTINGS_UPDATE, { settings, activePet });
-      });
     }
   );
 
@@ -114,22 +82,23 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     }
   });
 
-  ipcMain.on('window:resize', (_event, width: number, height: number, anchorBottom?: boolean) => {
+  ipcMain.on('window:resize', (_event, width: number, height: number, anchorBottom: boolean = true) => {
     const win = BrowserWindow.fromWebContents(_event.sender);
     if (win) {
       const [oldW, oldH] = win.getSize();
+      const [oldX, oldY] = win.getPosition();
+      
       const newWidth = Math.max(50, Math.round(width));
       const newHeight = Math.max(50, Math.round(height));
-
+      
       if (newWidth === oldW && newHeight === oldH) return;
-
+      
       if (anchorBottom) {
-        // Neo vào đáy: Dịch chuyển Y lên trên một khoảng bằng độ chênh lệch chiều cao
-        const [x, y] = win.getPosition();
+        // Điều chỉnh Y để giữ nguyên vị trí cạnh dưới
         const deltaH = newHeight - oldH;
         win.setBounds({
-          x: Math.round(x),
-          y: Math.round(y - deltaH),
+          x: Math.round(oldX - (newWidth - oldW) / 2),
+          y: Math.round(oldY - deltaH),
           width: newWidth,
           height: newHeight
         });
@@ -139,28 +108,13 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
     }
   });
 
-  ipcMain.on('window:save-position', (_event, x: number, y: number) => {
-    petManager.updatePosition(x, y);
+  ipcMain.on('window:save-position', (_event, instanceId: string, x: number, y: number) => {
+    petManager.updateInstancePosition(instanceId, x, y);
   });
 
-  ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, paths: string[]) => {
-    try {
-      if (!Array.isArray(paths)) return { success: false, error: 'Paths must be an array' };
-      
-      for (const path of paths) {
-        if (typeof path === 'string' && path.trim() !== '') {
-          console.log('Main: Trashing item at:', path);
-          await shell.trashItem(path);
-        }
-      }
-      return { success: true };
-    } catch (err) {
-      console.error('Failed to eat files:', err);
-      return { success: false, error: String(err) };
-    }
-  });
-
-  ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
-    // To be handled by main.ts or separate handler in Task 8
+  ipcMain.on('pet:ping', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:ping');
+    });
   });
 }

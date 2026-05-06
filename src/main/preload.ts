@@ -2,7 +2,7 @@
  * Preload script — Context Bridge.
  */
 
-import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import { contextBridge, ipcRenderer } from 'electron';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -12,6 +12,13 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setActivePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_SET_ACTIVE, slug),
   importPet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_IMPORT),
   deletePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_DELETE, slug),
+  
+  // Multi-Pet
+  getInstanceConfig: (id: string) => ipcRenderer.invoke('pet:get-instance-config', id),
+  spawnPet: (slug: string) => ipcRenderer.invoke('pet:spawn', slug),
+  removePet: (id: string) => ipcRenderer.invoke('pet:remove', id),
+  onPositionsUpdate: (cb: (data: any) => void) => ipcRenderer.on('pets:positions-updated', (_event, data) => cb(data)),
+
   pingPet: () => ipcRenderer.send('pet:ping'),
   onPing: (cb: any) => ipcRenderer.on('pet:ping', () => cb()),
   startAlarm: () => ipcRenderer.send('pet:start-alarm'),
@@ -20,8 +27,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onStopAlarm: (cb: any) => ipcRenderer.on('pet:stop-alarm', () => cb()),
   loadSpritesheet: (petSlug: string) =>
     ipcRenderer.invoke(IPC_CHANNELS.PET_LOAD_SPRITESHEET, petSlug),
-  eatFile: (paths: string[]) => ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths),
-  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 
   // --- Pomodoro ---
   startPomo: (focus: number, breakMin: number) => ipcRenderer.send('pomo:start', focus, breakMin),
@@ -40,9 +45,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
     ipcRenderer.send(IPC_CHANNELS.WINDOW_SET_IGNORE_MOUSE, ignore, options),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
-  resizeWindow: (width: number, height: number, anchorBottom?: boolean) =>
-    ipcRenderer.send('window:resize', width, height, anchorBottom),
-  savePosition: (x: number, y: number) => ipcRenderer.send('window:save-position', x, y),
+  resizeWindow: (width: number, height: number) => ipcRenderer.send('window:resize', width, height),
+  savePosition: (instanceId: string, x: number, y: number) => ipcRenderer.send('window:save-position', instanceId, x, y),
   openSettings: () => ipcRenderer.send(IPC_CHANNELS.WINDOW_OPEN_SETTINGS),
 
   // Settings update (listen)
@@ -52,8 +56,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Notifications (listen)
   onNotification: (callback: (payload: unknown) => void) =>
     ipcRenderer.on(IPC_CHANNELS.NOTIFICATION_NEW, (_event, payload) => callback(payload)),
-
-  // Intelligence
-  onPetSay: (callback: (text: string) => void) =>
-    ipcRenderer.on(IPC_CHANNELS.PET_SAY, (_event, text) => callback(text)),
 });

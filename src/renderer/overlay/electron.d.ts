@@ -21,8 +21,14 @@ export interface ElectronAPI {
   stopAlarm: () => void;
   onStartAlarm: (cb: () => void) => void;
   onStopAlarm: (cb: () => void) => void;
-  savePosition: (x: number, y: number) => void;
+  savePosition: (instanceId: string, x: number, y: number) => void;
   
+  // --- Multi-Pet ---
+  getInstanceConfig: (id: string) => Promise<any>;
+  spawnPet: (slug: string) => Promise<any>;
+  removePet: (id: string) => Promise<void>;
+  onPositionsUpdate: (cb: (data: any) => void) => void;
+
   // --- Pomodoro ---
   startPomo: (focus: number, breakMin: number) => void;
   pausePomo: () => void;

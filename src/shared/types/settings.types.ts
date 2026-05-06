@@ -1,11 +1,21 @@
 export type PetPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
 
+export interface PetInstance {
+  id: string;
+  slug: string;
+  x: number;
+  y: number;
+  scale: number;
+}
+
 export interface UserSettings {
-  /** Slug của pet đang active */
+  /** Danh sách các pet đang hiển thị (Multi-Pet) */
+  activePets: PetInstance[];
+  /** Slug của pet chính (để tương thích ngược) */
   activePetSlug: string | null;
-  /** Vị trí pet trên màn hình */
+  /** Vị trí pet mặc định */
   position: PetPosition;
-  /** Scale factor (0.5 → 2.0) */
+  /** Scale factor mặc định (0.5 → 2.0) */
   scale: number;
   /** Cho phép pet di chuyển ngẫu nhiên */
   enableWalking: boolean;
@@ -21,6 +31,7 @@ export interface UserSettings {
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
+  activePets: [],
   activePetSlug: null,
   position: 'bottom-right',
   scale: 1.0,

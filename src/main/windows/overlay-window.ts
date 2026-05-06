@@ -3,16 +3,18 @@ import path from 'path';
 import { OVERLAY_WINDOW } from '../../shared/constants';
 
 export class OverlayWindow {
-  private window: BrowserWindow | null = null;
+  private windows: Map<string, BrowserWindow> = new Map();
 
-  /** Tạo và hiển thị overlay window */
-  create(initialX?: number, initialY?: number): void {
+  /** Tạo và hiển thị một overlay window mới cho một pet instance */
+  create(instanceId: string, initialX?: number, initialY?: number): BrowserWindow {
     const { workArea } = screen.getPrimaryDisplay();
 
-    const x = initialX !== undefined ? initialX : workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH - 100;
-    const y = initialY !== undefined ? initialY : workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT - 100;
+    // Vị trí mặc định ngẫu nhiên một chút để các pet không chồng khít lên nhau khi spawn
+    const randomOffset = Math.floor(Math.random() * 100);
+    const x = initialX !== undefined ? initialX : workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH - 150 - randomOffset;
+    const y = initialY !== undefined ? initialY : workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT - 150 - randomOffset;
 
-    this.window = new BrowserWindow({
+    const win = new BrowserWindow({
       width: OVERLAY_WINDOW.WIDTH,
       height: OVERLAY_WINDOW.HEIGHT,
       x,
@@ -24,6 +26,7 @@ export class OverlayWindow {
       resizable: false,
       focusable: false,
       hasShadow: false,
+      title: `MiniPet-${instanceId}`,
       icon: app.isPackaged
         ? path.join(process.resourcesPath, 'icons', `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
         : path.join(app.getAppPath(), `src/assets/icons/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
@@ -35,60 +38,50 @@ export class OverlayWindow {
       },
     });
 
-    // Tôi tạm thời để lệnh mở DevTools này, bạn có thể đóng nó nếu Pet đã hiện đẹp
-    // this.window.webContents.openDevTools({ mode: 'detach' });
+    // Click-through mặc định
+    win.setIgnoreMouseEvents(true, { forward: true });
 
-    // Click-through với forward (nhận mouse move events)
-    this.window.setIgnoreMouseEvents(true, { forward: true });
-
-    // Load overlay HTML
+    // Load overlay HTML với instanceId trong query param để renderer biết mình là ai
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-      // In dev, Vite handles the path. Forge provides the env var.
-      this.window.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/src/renderer/overlay/index.html`);
+      win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/src/renderer/overlay/index.html?id=${instanceId}`);
     } else {
-      this.window.loadFile(
-        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/src/renderer/overlay/index.html`)
+      win.loadFile(
+        path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/src/renderer/overlay/index.html`),
+        { query: { id: instanceId } }
       );
     }
 
-    // IPC listener cho toggle click-through
-    ipcMain.on('window:set-ignore-mouse-events', (_event, ignore, options) => {
-      this.window?.setIgnoreMouseEvents(ignore, options);
+    this.windows.set(instanceId, win);
+
+    win.on('closed', () => {
+      this.windows.delete(instanceId);
     });
+
+    return win;
   }
 
-  setPosition(position: 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right'): void {
-    if (!this.window) return;
-    const { workArea } = screen.getPrimaryDisplay();
-    let x, y;
+  /** Lấy cửa sổ theo ID */
+  getWindow(instanceId: string): BrowserWindow | undefined {
+    return this.windows.get(instanceId);
+  }
 
-    switch (position) {
-      case 'bottom-left':
-        x = workArea.x;
-        y = workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT;
-        break;
-      case 'top-left':
-        x = workArea.x;
-        y = workArea.y;
-        break;
-      case 'top-right':
-        x = workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH;
-        y = workArea.y;
-        break;
-      default: // bottom-right
-        x = workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH;
-        y = workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT;
+  /** Lấy tất cả cửa sổ */
+  getAllWindows(): BrowserWindow[] {
+    return Array.from(this.windows.values());
+  }
+
+  /** Xóa một pet instance cụ thể */
+  destroy(instanceId: string): void {
+    const win = this.windows.get(instanceId);
+    if (win) {
+      win.close();
+      this.windows.delete(instanceId);
     }
-
-    this.window.setPosition(x, y);
   }
 
-  getWindow(): BrowserWindow | null {
-    return this.window;
-  }
-
-  destroy(): void {
-    this.window?.close();
-    this.window = null;
+  /** Xóa tất cả pet instances */
+  destroyAll(): void {
+    this.windows.forEach((win) => win.close());
+    this.windows.clear();
   }
 }

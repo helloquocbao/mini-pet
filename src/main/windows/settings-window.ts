@@ -47,4 +47,8 @@ export class SettingsWindow {
   close(): void {
     this.window?.close();
   }
+
+  getWindow(): BrowserWindow | null {
+    return this.window;
+  }
 }
