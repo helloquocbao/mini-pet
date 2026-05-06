@@ -145,8 +145,13 @@ export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTr
 
   ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, paths: string[]) => {
     try {
+      if (!Array.isArray(paths)) return { success: false, error: 'Paths must be an array' };
+      
       for (const path of paths) {
-        await shell.trashItem(path);
+        if (typeof path === 'string' && path.trim() !== '') {
+          console.log('Main: Trashing item at:', path);
+          await shell.trashItem(path);
+        }
       }
       return { success: true };
     } catch (err) {
