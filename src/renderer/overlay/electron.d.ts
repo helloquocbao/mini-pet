@@ -30,6 +30,7 @@ export interface ElectronAPI {
   updatePomoConfig: (focus: number, breakMin: number) => void;
   getPomoState: () => Promise<any>;
   onPomoTick: (cb: (state: any) => void) => void;
+  onPetSay: (cb: (text: string) => void) => void;
 }
 
 declare global {

@@ -12,6 +12,8 @@ import { SettingsWindow } from './windows/settings-window';
 import { IPC_CHANNELS } from '../shared/types/ipc.types';
 import started from 'electron-squirrel-startup';
 import { PomodoroManager } from './pet/pomodoro-manager';
+import { IntelligenceManager } from './pet/intelligence-manager';
+
 
 if (started) {
   app.quit();
@@ -21,6 +23,7 @@ let overlayWindow: OverlayWindow;
 let settingsWindow: SettingsWindow;
 let systemTray: SystemTray;
 let petManager: PetManager;
+let intelManager: IntelligenceManager;
 let isQuitting = false;
 
 app.whenReady().then(async () => {
@@ -50,6 +53,13 @@ app.whenReady().then(async () => {
   overlayWindow.create(settings.lastX, settings.lastY);
 
   settingsWindow = new SettingsWindow();
+
+  // 2.5 Init Intelligence Manager
+  const win = overlayWindow.getWindow();
+  if (win) {
+    intelManager = new IntelligenceManager(win, petManager);
+    intelManager.start();
+  }
 
   // 3. Create system tray
   systemTray = new SystemTray({

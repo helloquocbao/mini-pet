@@ -47,8 +47,95 @@ export const translations: Record<Language, any> = {
     movingDisabled: 'Moving is disabled!',
     trayControl: '🐾 MiniPet Control',
     trayToggle: 'Show/Hide Pet',
-    traySettings: 'Settings...',
     trayQuit: 'Quit MiniPet',
+    // Intelligence
+    intelAppCode: [
+      'Coding hard? Don\'t let bugs visit! 💻',
+      'This function looks clean! ✨',
+      'Remember to commit your changes! 🚀',
+      'Take a deep breath before debugging. 🧘‍♂️'
+    ],
+    intelAppWeb: [
+      'Looking for docs or just surfing? 🌐',
+      'Too many tabs open, buddy! 📂',
+      'Learning something new? 📚',
+      'Stay focused, don\'t get lost in the web! 🕸️'
+    ],
+    intelAppMusic: [
+      'Chill music, stay productive! 🎵',
+      'This beat is fire! 🔥',
+      'Music makes work better, right? 🎧'
+    ],
+    intelAppChat: [
+      'New message? Reply quick and get back! 💬',
+      'Everyone wants a piece of you today! 📱',
+      'Socializing is good, but work is calling! 📞'
+    ],
+    intelAppTerminal: [
+      'Type carefully, no sudo mistakes! ⌨️',
+      'The power of the command line! 🖥️',
+      'Hack the planet! 🕶️'
+    ],
+    intelAppDesign: [
+      'Pixel perfect! 🎨',
+      'Make it pop! ✨',
+      'Design is thinking made visual. 🖌️'
+    ],
+    intelAppMeeting: [
+      'Meeting time! Is your mic muted? 🎙️',
+      'Don\'t fall asleep in there! 😴',
+      'Take good notes! 📝'
+    ],
+    intelAppProductivity: [
+      'Organizing your life? Great! 📝',
+      'Writing something important? ✍️',
+      'Efficiency is key! 🔑'
+    ],
+    intelAppFinder: [
+      'Looking for something lost? 🔍',
+      'Organizing files is therapeutic. 📁'
+    ],
+    intelAppDefault: [
+      'You\'re working hard! Keep it up! ✨',
+      'I\'m just here watching you be awesome. 🐾',
+      'Need a coffee? ☕',
+      'Doing great! 💪'
+    ],
+    // Web specific
+    intelWebYoutube: [
+      'Watching videos again? Don\'t get distracted! 📺',
+      'Is this video educational or just for fun? 🤔',
+      'One more video and back to work, okay? 🐾'
+    ],
+    intelWebSocial: [
+      'Social media again? Stay focused, buddy! 📱',
+      'Don\'t let the feed eat your time! 🕸️',
+      'The scroll is endless, but your time isn\'t! ⏳'
+    ],
+    intelWebDev: [
+      'Searching for a solution? You can do it! 💻',
+      'Github! Time to contribute? 🚀',
+      'StackOverflow is your best friend right now. 🤝'
+    ],
+    intelWebAI: [
+      'Asking AI for help? Smart move! 🤖',
+      'Asking the machines for advice? 🧠',
+      'AI won\'t replace you, but it sure helps! ✨'
+    ],
+    intelWebDesign: [
+      'Designing in the browser? Looking good! 🎨',
+      'Web-based creativity at its best! ✨'
+    ],
+    intelTimeLate: [
+      'It\'s late, time to sleep! 😴',
+      'Your eyes need rest, buddy. 🌙',
+      'The moon is up, why are you? 🏠'
+    ],
+    intelTimeLunch: [
+      'Lunch time, take a break! 🍱',
+      'Food is fuel! 🍎',
+      'Go grab something delicious! 🍜'
+    ],
   },
   vi: {
     settingsTitle: 'Cài đặt MiniPet',
@@ -98,6 +185,94 @@ export const translations: Record<Language, any> = {
     trayToggle: 'Hiện/Ẩn Thú Cưng',
     traySettings: 'Cài đặt...',
     trayQuit: 'Thoát MiniPet',
+    // Intelligence
+    intelAppCode: [
+      'Đang tập trung code à? Đừng để bug ghé thăm nhé! 💻',
+      'Hàm này viết hay đấy sen! ✨',
+      'Nhớ commit code thường xuyên nha! 🚀',
+      'Hít một hơi thật sâu rồi debug tiếp nào! 🧘‍♂️'
+    ],
+    intelAppWeb: [
+      'Đang tìm tài liệu hay là đang lướt web giải trí đấy? 🌐',
+      'Mở hơi bị nhiều tab rồi đó nha! 📂',
+      'Lại đang học thêm kiến thức mới hả? 📚',
+      'Tập trung vào, đừng để "mạng xã hội" cuốn đi! 🕸️'
+    ],
+    intelAppMusic: [
+      'Nhạc chill quá, làm việc năng suất hẳn lên! 🎵',
+      'Giai điệu này cháy quá sen ơi! 🔥',
+      'Có nhạc vào làm việc khác hẳn nhỉ? 🎧'
+    ],
+    intelAppChat: [
+      'Lại có tin nhắn mới à? Trả lời nhanh rồi làm việc tiếp nhé! 💬',
+      'Hôm nay sen có vẻ đắt show nhắn tin quá nhỉ! 📱',
+      'Tám chuyện ít thôi, tập trung chuyên môn nào! 📞'
+    ],
+    intelAppTerminal: [
+      'Gõ lệnh cẩn thận nhé, đừng sudo nhầm! ⌨️',
+      'Sức mạnh của dòng lệnh là đây! 🖥️',
+      'Hacker chính hiệu là đây chứ đâu! 🕶️'
+    ],
+    intelAppDesign: [
+      'Đẹp từng pixel luôn! 🎨',
+      'Cho nó "vibrant" lên xíu nữa sen ơi! ✨',
+      'Thiết kế là nghệ thuật, sen là nghệ sĩ! 🖌️'
+    ],
+    intelAppMeeting: [
+      'Đến giờ họp rồi! Nhớ check xem tắt mic chưa nhé! 🎙️',
+      'Đừng ngủ gật trong cuộc họp nha sen! 😴',
+      'Nhớ ghi chú lại những ý quan trọng đấy! 📝'
+    ],
+    intelAppProductivity: [
+      'Sắp xếp công việc hả? Tuyệt vời! 📝',
+      'Đang viết lách gì đó quan trọng đúng không? ✍️',
+      'Hiệu quả là chìa khóa thành công! 🔑'
+    ],
+    intelAppFinder: [
+      'Đang tìm file gì bị thất lạc hả? 🔍',
+      'Dọn dẹp thư mục cũng là một cách giải tỏa stress đấy! 📁'
+    ],
+    intelAppDefault: [
+      'Sen làm việc chăm chỉ quá! Cố lên! ✨',
+      'Tui vẫn luôn ở đây cổ vũ sen nè. 🐾',
+      'Làm hớp cà phê cho tỉnh táo không? ☕',
+      'Sen là nhất! 💪'
+    ],
+    // Web specific
+    intelWebYoutube: [
+      'Lại xem video à? Coi chừng bị cuốn quá nhé! 📺',
+      'Video này có giúp ích cho công việc không đấy sen? 🤔',
+      'Nốt video này rồi quay lại làm việc nhé! 🐾'
+    ],
+    intelWebSocial: [
+      'Lại lướt mạng xã hội rồi! Tập trung đi sen ơi! 📱',
+      'Đừng để tin tức làm xao nhãng nhé! 🕸️',
+      'Cái feed là vô tận, nhưng thời gian thì không đâu! ⏳'
+    ],
+    intelWebDev: [
+      'Đang tìm cách sửa bug hả? Chúc sen may mắn! 💻',
+      'Github! Lại sắp có thêm một chiếc commit xịn xò? 🚀',
+      'StackOverflow đúng là cứu cánh của đời dev! 🤝'
+    ],
+    intelWebAI: [
+      'Đang nhờ AI làm hộ bài tập à? Khai mau! 🤖',
+      'Nhờ máy móc tư vấn là nước đi đúng đắn đấy! 🧠',
+      'AI không thay thế được sen, nhưng sẽ giúp sen nhàn hơn! ✨'
+    ],
+    intelWebDesign: [
+      'Thiết kế trên web luôn à? Đỉnh đấy! 🎨',
+      'Figma/Canva web à? Sáng tạo lên sen ơi! ✨'
+    ],
+    intelTimeLate: [
+      'Muộn rồi đấy, đi ngủ thôi bạn ơi! 😴',
+      'Mắt sen đỏ hết rồi kìa, nghỉ ngơi đi. 🌙',
+      'Giờ này đến cú còn ngủ, sao sen vẫn thức? 🏠'
+    ],
+    intelTimeLunch: [
+      'Đến giờ ăn trưa rồi, nghỉ ngơi xíu đi! 🍱',
+      'Có thực mới vực được đạo, đi ăn thôi! 🍎',
+      'Kiếm món gì ngon ngon tự thưởng cho mình đi! 🍜'
+    ],
   },
   fr: {
     settingsTitle: 'Paramètres MiniPet',

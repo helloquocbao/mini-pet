@@ -19,6 +19,8 @@ export const IPC_CHANNELS = {
   // Notifications (Phase 2)
   NOTIFICATION_NEW: 'notification:new',
   NOTIFICATION_DISMISS: 'notification:dismiss',
+  // Intelligence
+  PET_SAY: 'pet:say',
 } as const;
 
 export type IpcChannel = (typeof IPC_CHANNELS)[keyof typeof IPC_CHANNELS];

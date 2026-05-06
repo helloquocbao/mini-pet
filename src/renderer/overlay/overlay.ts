@@ -71,6 +71,10 @@ async function init(): Promise<void> {
       showSpeech(state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
     }
   });
+  
+  window.electronAPI.onPetSay((text: string) => {
+    showSpeech(text);
+  });
 
   setupRandomSpeech(stateMachine);
 
