@@ -7,7 +7,9 @@ import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { PetManager } from '../pet/pet-manager';
 import { UserSettings } from '../../shared/types/settings.types';
 
-export function registerIpcHandlers(petManager: PetManager): void {
+import { SystemTray } from '../tray/system-tray';
+
+export function registerIpcHandlers(petManager: PetManager, systemTray: SystemTray): void {
   // --- Pet handlers ---
 
   ipcMain.handle('pet:import', async () => {
@@ -75,6 +77,10 @@ export function registerIpcHandlers(petManager: PetManager): void {
       await petManager.updateSettings(newSettings);
       const settings = petManager.getSettings();
       const activePet = petManager.getActivePet();
+
+      if (newSettings.language) {
+        systemTray.updateMenu(settings.language);
+      }
 
       BrowserWindow.getAllWindows().forEach(win => {
         win.webContents.send(IPC_CHANNELS.SETTINGS_UPDATE, { settings, activePet });

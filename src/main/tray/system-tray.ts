@@ -1,9 +1,6 @@
-/**
- * SystemTray — Quản lý tray icon và context menu.
- */
-
 import { app, Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
 import path from 'path';
+import { translations, Language } from '../../shared/i18n/translations';
 
 interface TrayCallbacks {
   onShowSettings: () => void;
@@ -19,7 +16,7 @@ export class SystemTray {
     this.callbacks = callbacks;
   }
 
-  create(): void {
+  create(lang: Language = 'en'): void {
     // Determine icon path
     const iconPath = app.isPackaged
       ? path.join(process.resourcesPath, 'icons', 'icon.png')
@@ -30,15 +27,22 @@ export class SystemTray {
     this.tray = new Tray(icon.resize({ width: 18, height: 18 }));
     this.tray.setToolTip('MiniPet Control Center');
 
-    // 2. Build context menu với nhiều option hơn
+    this.updateMenu(lang);
+  }
+
+  updateMenu(lang: Language): void {
+    if (!this.tray) return;
+
+    const t = translations[lang];
+
     const template: MenuItemConstructorOptions[] = [
-      { label: '🐾 MiniPet Control', enabled: false },
+      { label: t.trayControl, enabled: false },
       { type: 'separator' },
-      { label: 'Show/Hide Pet', click: this.callbacks.onTogglePet },
-      { label: 'Settings...', click: this.callbacks.onShowSettings },
+      { label: t.trayToggle, click: this.callbacks.onTogglePet },
+      { label: t.traySettings, click: this.callbacks.onShowSettings },
       { type: 'separator' },
       { type: 'separator' },
-      { label: 'Quit MiniPet', accelerator: 'Command+Q', click: this.callbacks.onQuit },
+      { label: t.trayQuit, accelerator: 'Command+Q', click: this.callbacks.onQuit },
     ];
 
     const contextMenu = Menu.buildFromTemplate(template);

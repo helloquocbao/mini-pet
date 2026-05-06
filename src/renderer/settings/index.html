@@ -11,16 +11,16 @@
   <body>
     <div class="settings-container">
       <header class="settings-header">
-        <h1>MiniPet Settings</h1>
-        <p class="subtitle">Customize your desktop companion</p>
+        <h1 data-i18n="settingsTitle">MiniPet Settings</h1>
+        <p class="subtitle" data-i18n="subtitle">Customize your desktop companion</p>
       </header>
 
       <!-- Pet Selection -->
       <section class="section">
         <div class="section-header-row">
-          <h2>Choose Your Pet</h2>
+          <h2 data-i18n="choosePet">Choose Your Pet</h2>
           <div class="gallery-actions">
-            <button id="import-pet-btn" class="secondary-btn">Import New Pet</button>
+            <button id="import-pet-btn" class="secondary-btn" data-i18n="importPet">Import New Pet</button>
           </div>
         </div>
         <div id="pet-gallery" class="pet-gallery">
@@ -31,37 +31,49 @@
       <!-- Pomodoro Timer -->
       <section class="section">
         <div class="section-header-row">
-          <h2>Pomodoro Timer</h2>
-          <div id="pomo-status" class="status-tag">Idle</div>
+          <h2 data-i18n="pomodoroTimer">Pomodoro Timer</h2>
+          <div id="pomo-status" class="status-tag" data-i18n="statusIdle">Idle</div>
         </div>
         <div class="pomo-container">
           <div class="pomo-settings">
             <div class="pomo-input-group">
-              <label>Focus (min)</label>
+              <label data-i18n="focus">Focus (min)</label>
               <input type="number" id="pomo-focus-time" value="25" min="1" max="120" />
             </div>
             <div class="pomo-input-group">
-              <label>Break (min)</label>
+              <label data-i18n="break">Break (min)</label>
               <input type="number" id="pomo-break-time" value="5" min="1" max="60" />
             </div>
           </div>
           <div class="pomo-timer" id="pomo-display">25:00</div>
           <div class="pomo-controls">
-            <button id="pomo-start-btn" class="primary-btn">Start</button>
-            <button id="pomo-pause-btn" class="secondary-btn" style="display: none;">Pause</button>
-            <button id="pomo-reset-btn" class="secondary-btn">Reset</button>
-            <button id="pomo-standard-btn" class="secondary-btn">Standard</button>
+            <button id="pomo-start-btn" class="primary-btn" data-i18n="start">Start</button>
+            <button id="pomo-pause-btn" class="secondary-btn" style="display: none;" data-i18n="pause">Pause</button>
+            <button id="pomo-reset-btn" class="secondary-btn" data-i18n="reset">Reset</button>
+            <button id="pomo-standard-btn" class="secondary-btn" data-i18n="standard">Standard</button>
           </div>
         </div>
       </section>
 
       <!-- Preferences -->
       <section class="section">
-        <h2>Preferences</h2>
+        <h2 data-i18n="preferences">Preferences</h2>
         <div class="settings-form">
+          <!-- Language Selection -->
+          <div class="setting-item">
+            <label data-i18n="language">Language</label>
+            <select id="language-select" class="select-input">
+              <option value="en">English</option>
+              <option value="vi">Tiếng Việt</option>
+              <option value="fr">Français</option>
+              <option value="zh">中文</option>
+              <option value="it">Italiano</option>
+            </select>
+          </div>
+
           <!-- Scale -->
           <div class="setting-item">
-            <label>Pet Scale</label>
+            <label data-i18n="petScale">Pet Scale</label>
             <div class="range-container">
               <input type="range" id="scale-range" min="0.5" max="2" step="0.1" value="2" />
               <span id="scale-value">2.0x</span>
@@ -71,8 +83,8 @@
           <!-- Enable Walking -->
           <div class="setting-item">
             <div class="setting-item-column">
-              <label>Enable Walking</label>
-              <p class="setting-hint">Allow your pet to wander around the screen.</p>
+              <label data-i18n="enableWalking">Enable Walking</label>
+              <p class="setting-hint" data-i18n="walkingHint">Allow your pet to wander around the screen.</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="walking-toggle" checked />
@@ -83,8 +95,8 @@
           <!-- Launch at Startup -->
           <div class="setting-item">
             <div class="setting-item-column">
-              <label>Launch at Startup</label>
-              <p class="setting-hint">Open MiniPet automatically when you log in.</p>
+              <label data-i18n="launchAtStartup">Launch at Startup</label>
+              <p class="setting-hint" data-i18n="startupHint">Open MiniPet automatically when you log in.</p>
             </div>
             <label class="switch">
               <input type="checkbox" id="startup-toggle" />
@@ -94,8 +106,8 @@
 
           <!-- Interaction -->
           <div class="setting-item">
-            <label>Interaction</label>
-            <button id="ping-pet-btn" class="secondary-btn">Ping Pet</button>
+            <label data-i18n="interaction">Interaction</label>
+            <button id="ping-pet-btn" class="secondary-btn" data-i18n="pingPet">Ping Pet</button>
           </div>
         </div>
       </section>

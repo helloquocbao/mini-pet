@@ -1,16 +1,14 @@
-/**
- * Overlay entry point — renderer process.
- */
-
 import { SpriteRenderer } from './engine/sprite-renderer';
 import { AnimationController } from './engine/animation-controller';
 import { PetStateMachine } from './engine/pet-state-machine';
 import { PETDEX_SPRITE } from '../../shared/constants';
+import { translations, Language } from '../../shared/i18n/translations';
 
 let isAlarming = false;
 let currentScale = 1.0;
 let isSpeechVisible = false;
 let speechTimeout: any = null;
+let currentLanguage: Language = 'en';
 
 async function init(): Promise<void> {
   const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
@@ -39,6 +37,7 @@ async function init(): Promise<void> {
   const savedSettings: any = await window.electronAPI.getSettings();
   const initialScale = Number(savedSettings?.scale) || 1.0;
   const isWalkingEnabled = savedSettings?.enableWalking !== false;
+  currentLanguage = savedSettings?.language || 'en';
 
   const controller = new AnimationController(renderer);
   const stateMachine = new PetStateMachine(controller, initialScale, isWalkingEnabled);
@@ -68,7 +67,8 @@ async function init(): Promise<void> {
 
   window.electronAPI.onPomoTick((state: any) => {
     if (state.finished) {
-      showSpeech(state.isWorkSession ? 'Nghỉ ngơi thôi sen ơi! 🐾' : 'Quay lại làm việc thôi! 💪', 30000);
+      const t = translations[currentLanguage];
+      showSpeech(state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
     }
   });
 
@@ -81,6 +81,7 @@ async function init(): Promise<void> {
     const { settings, activePet } = data;
 
     currentScale = Number(settings.scale) || 1.0;
+    currentLanguage = settings.language || 'en';
     stateMachine.setScale(currentScale);
     stateMachine.setWalkingEnabled(settings.enableWalking);
     controller.setWalkingEnabled(settings.enableWalking);
@@ -156,20 +157,22 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     if (clickTimer) clearTimeout(clickTimer);
     console.log(`Renderer: Click detected. Count: ${clickCount}`);
 
+    const t = translations[currentLanguage];
+
     // Phản hồi tức thì cho từng số lần click (Quy ước: Click 1 -> Dòng 4, Click 2 -> Dòng 5, Click 3+ -> Dòng 8)
     if (clickCount === 1) {
       stateMachine.forceState('happy'); // Dòng 4 (Row 3)
-      showSpeech('Chào sen nhé! 👋');
+      showSpeech(t.hello);
     } else if (clickCount === 2) {
       stateMachine.forceState('jump'); // Dòng 5 (Row 4)
-      showSpeech('Vận động tí cho khỏe! 🐾');
+      showSpeech(t.exercise);
     } else if (clickCount >= 3) {
       if (stateMachine.getWalkingEnabled()) {
         stateMachine.forceState('run'); // Dòng 8 (Row 7)
-        showSpeech('Chạy đi chờ chi! 🏃‍♂️');
+        showSpeech(t.run);
       } else {
         stateMachine.forceState('happy');
-        showSpeech('Tính năng di chuyển đang tắt!');
+        showSpeech(t.movingDisabled);
       }
     }
 
@@ -255,14 +258,15 @@ function syncWindowSize(): void {
 }
 
 function getRandomPingSpeech(): string {
-  return ['Ơi!', 'Gì thế?', 'Gọi tui hả?', 'Hú!', 'Đang nhảy đây!'][Math.floor(Math.random() * 5)];
+  const responses = translations[currentLanguage].pingResponses;
+  return responses[Math.floor(Math.random() * responses.length)];
 }
 
 function setupRandomSpeech(stateMachine: PetStateMachine): void {
-  const randomSpeeches = ['Uống nước đi!', 'Làm việc nhé!', 'Tập thể dục tí...', 'Mỏi mắt rồi.', 'Bạn tuyệt vời đấy!'];
   const scheduleNext = () => {
     setTimeout(() => {
-      showSpeech(randomSpeeches[Math.floor(Math.random() * randomSpeeches.length)]);
+      const speeches = translations[currentLanguage].randomSpeeches;
+      showSpeech(speeches[Math.floor(Math.random() * speeches.length)]);
       scheduleNext();
     }, (Math.random() * 3 + 2) * 60 * 1000);
   };

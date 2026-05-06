@@ -1,21 +1,30 @@
-/**
- * Settings page entry point.
- */
-
 import { PetListItem } from '../../shared/types/pet.types';
 import { UserSettings } from '../../shared/types/settings.types';
+import { translations, Language } from '../../shared/i18n/translations';
 
 async function initSettings(): Promise<void> {
   const pets = await window.electronAPI.getPetList();
   const settings = await window.electronAPI.getSettings();
 
+  applyTranslations(settings.language || 'en');
   renderPetGallery(pets, settings.activePetSlug);
   populateForm(settings);
   setupEventListeners(settings);
-  setupPomodoro();
+  setupPomodoro(settings.language || 'en');
 }
 
-async function setupPomodoro(): Promise<void> {
+function applyTranslations(lang: Language): void {
+  const t = translations[lang];
+  const elements = document.querySelectorAll('[data-i18n]');
+  elements.forEach((el) => {
+    const key = el.getAttribute('data-i18n') as string;
+    if (t[key]) {
+      el.textContent = t[key];
+    }
+  });
+}
+
+async function setupPomodoro(lang: Language): Promise<void> {
   const focusInput = document.getElementById('pomo-focus-time') as HTMLInputElement;
   const breakInput = document.getElementById('pomo-break-time') as HTMLInputElement;
   const display = document.getElementById('pomo-display')!;
@@ -42,15 +51,16 @@ async function setupPomodoro(): Promise<void> {
     focusInput.value = state.focusMinutes.toString();
     breakInput.value = state.breakMinutes.toString();
 
+    const t = translations[lang];
     if (state.status === 'idle') {
-      status.textContent = 'Idle';
+      status.textContent = t.statusIdle;
       status.classList.remove('active');
       startBtn.style.display = 'inline-block';
       pauseBtn.style.display = 'none';
       focusInput.disabled = false;
       breakInput.disabled = false;
     } else {
-      status.textContent = state.status === 'focus' ? 'Focus' : 'Break';
+      status.textContent = state.status === 'focus' ? t.statusFocus : t.statusBreak;
       status.classList.add('active');
       startBtn.style.display = 'none';
       pauseBtn.style.display = 'inline-block';
@@ -110,11 +120,13 @@ function populateForm(settings: UserSettings): void {
   const scaleValue = document.getElementById('scale-value') as HTMLSpanElement;
   const walkingToggle = document.getElementById('walking-toggle') as HTMLInputElement;
   const startupToggle = document.getElementById('startup-toggle') as HTMLInputElement;
+  const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
 
   scaleRange.value = settings.scale.toString();
   scaleValue.textContent = `${settings.scale.toFixed(1)}x`;
   walkingToggle.checked = settings.enableWalking;
   startupToggle.checked = settings.launchAtStartup || false;
+  languageSelect.value = settings.language || 'en';
 }
 
 function setupEventListeners(settings: UserSettings): void {
@@ -123,6 +135,7 @@ function setupEventListeners(settings: UserSettings): void {
   const walkingToggle = document.getElementById('walking-toggle') as HTMLInputElement;
   const startupToggle = document.getElementById('startup-toggle') as HTMLInputElement;
   const pingBtn = document.getElementById('ping-pet-btn') as HTMLButtonElement;
+  const languageSelect = document.getElementById('language-select') as HTMLSelectElement;
 
   scaleRange.addEventListener('input', () => {
     const scale = parseFloat(scaleRange.value);
@@ -136,6 +149,14 @@ function setupEventListeners(settings: UserSettings): void {
 
   startupToggle.addEventListener('change', () => {
     window.electronAPI.updateSettings({ launchAtStartup: startupToggle.checked });
+  });
+
+  languageSelect.addEventListener('change', () => {
+    const language = languageSelect.value as Language;
+    window.electronAPI.updateSettings({ language });
+    applyTranslations(language);
+    // Re-run setupPomodoro to update its status text immediately if needed
+    setupPomodoro(language);
   });
 
   pingBtn.addEventListener('click', () => {

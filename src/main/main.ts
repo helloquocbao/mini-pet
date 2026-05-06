@@ -40,22 +40,15 @@ app.whenReady().then(async () => {
   petManager = new PetManager();
   await petManager.init();
 
-  // 2. Register IPC handlers
-  registerIpcHandlers(petManager);
-
-  // Thêm handler riêng để mở cửa sổ settings
-  ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
-    settingsWindow.open();
-  });
-
-  // 3. Create windows
   const settings = await petManager.getSettings();
+
+  // 2. Create windows
   overlayWindow = new OverlayWindow();
   overlayWindow.create(settings.lastX, settings.lastY);
 
   settingsWindow = new SettingsWindow();
 
-  // 4. Create system tray
+  // 3. Create system tray
   systemTray = new SystemTray({
     onShowSettings: () => {
       settingsWindow.open();
@@ -72,7 +65,15 @@ app.whenReady().then(async () => {
       }
     },
   });
-  systemTray.create();
+  systemTray.create(settings.language);
+
+  // 4. Register IPC handlers
+  registerIpcHandlers(petManager, systemTray);
+
+  // Thêm handler riêng để mở cửa sổ settings
+  ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
+    settingsWindow.open();
+  });
 });
 
 // macOS: re-create window khi click dock icon
@@ -83,7 +84,7 @@ app.on('activate', () => {
 });
 
 // KHÔNG quit khi đóng tất cả windows (chạy trong tray)
-app.on('window-all-closed', (e: Event) => {
+app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     if (!isQuitting) {
       // Prevent default behavior to keep app running in tray

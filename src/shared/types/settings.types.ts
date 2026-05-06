@@ -17,6 +17,7 @@ export interface UserSettings {
   launchAtStartup: boolean;
   lastX: number | null;
   lastY: number | null;
+  language: 'en' | 'vi' | 'fr' | 'zh' | 'it';
 }
 
 export const DEFAULT_SETTINGS: UserSettings = {
@@ -29,4 +30,5 @@ export const DEFAULT_SETTINGS: UserSettings = {
   launchAtStartup: false,
   lastX: null,
   lastY: null,
+  language: 'en',
 };
