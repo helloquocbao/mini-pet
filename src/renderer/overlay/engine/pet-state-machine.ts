@@ -70,6 +70,10 @@ export class PetStateMachine {
 
   /** Chế độ báo động (nhảy liên tục) */
   startAlarm(): void {
+    if (this.timerId) {
+      clearTimeout(this.timerId);
+      this.timerId = null;
+    }
     // Ép Pet vào trạng thái vẫy tay liên tục
     const config = { ...this.animations['notify'], loop: true };
     this.controller.play(config, this.scale);

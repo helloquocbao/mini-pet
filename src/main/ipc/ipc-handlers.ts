@@ -118,6 +118,18 @@ export function registerIpcHandlers(petManager: PetManager): void {
     });
   });
 
+  ipcMain.on('pet:start-alarm', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:start-alarm');
+    });
+  });
+
+  ipcMain.on('pet:stop-alarm', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:stop-alarm');
+    });
+  });
+
   ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, filePaths: string[]) => {
     console.log('IPC: Received file:eat request for:', filePaths);
     return petManager.eatFiles(filePaths);
