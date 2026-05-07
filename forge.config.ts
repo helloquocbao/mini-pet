@@ -10,6 +10,8 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses';
 
 const config: ForgeConfig = {
   packagerConfig: {
+    name: 'MiniPet',
+    executableName: 'MiniPet',
     asar: true,
     icon: './src/assets/icons/icon',
     extraResource: [
@@ -20,17 +22,18 @@ const config: ForgeConfig = {
   rebuildConfig: {},
   makers: [
     new MakerZIP({}, ['darwin', 'win32']),
-    new MakerDMG({}),
+    new MakerDMG({
+      name: 'MiniPet',
+      icon: './src/assets/icons/icon.icns',
+      overwrite: true
+    }),
     new MakerRpm({}),
     new MakerDeb({}),
   ],
   plugins: [
     new VitePlugin({
-      // `build` can specify multiple entry builds, which can be Main process, Preload scripts, Worker process, etc.
-      // If you are familiar with Vite configuration, it will look really familiar.
       build: [
         {
-          // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
           entry: 'src/main/main.ts',
           config: 'vite.main.config.ts',
           target: 'main',
@@ -48,8 +51,6 @@ const config: ForgeConfig = {
         },
       ],
     }),
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
@@ -63,3 +64,4 @@ const config: ForgeConfig = {
 };
 
 export default config;
+
