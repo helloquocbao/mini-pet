@@ -9,7 +9,7 @@ export const PETDEX_SPRITE = {
   SHEET_HEIGHT: 1872, // 208 * 9
 } as const;
 
-/** Default animation mapping cho Spritesheet mới của bạn */
+/** Default animation mapping for the spritesheet */
 export const DEFAULT_ANIMATIONS: Record<
   string,
   { row: number; frameCount: number; fps: number; loop: boolean }
@@ -26,10 +26,12 @@ export const DEFAULT_ANIMATIONS: Record<
   eat: { row: 7, frameCount: 8, fps: 12, loop: false },
 };
 
-/** Overlay window dimensions (Vừa đủ cho Pet 2x: 384x416) */
+/** Overlay window dimensions (Enough for 2x scale: 384x416) */
 export const OVERLAY_WINDOW = {
   WIDTH: 400,
   HEIGHT: 440,
+  DEFAULT_X: 200,
+  DEFAULT_Y: 200,
 } as const;
 
 /** Settings window dimensions */
@@ -38,8 +40,20 @@ export const SETTINGS_WINDOW = {
   HEIGHT: 500,
 } as const;
 
-/** Paths */
+/** Shared App Paths */
 export const APP_PATHS = {
   PETS_DIR: 'pets',
   SETTINGS_FILE: 'settings.json',
+  DEFAULT_PETS_ASSETS: 'default-pets',
+  ICONS_ASSETS: 'icons',
+} as const;
+
+/** Interaction Constants */
+export const INTERACTION = {
+  SPEECH_DURATION_DEFAULT: 4000,
+  SPEECH_DURATION_LONG: 30000,
+  SPEECH_SYNC_COOLDOWN: 10000,
+  MAX_ACTIVE_PETS: 5,
+  RANDOM_SPEECH_CHANCE: 0.1,
+  RANDOM_SPEECH_INTERVAL: 15000,
 } as const;

@@ -1,13 +1,18 @@
-import { app, BrowserWindow, screen, ipcMain } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import path from 'path';
-import { OVERLAY_WINDOW } from '../../shared/constants';
+import { OVERLAY_WINDOW, APP_PATHS } from '../../shared/constants';
 
 export class OverlayWindow {
   private windows: Map<string, BrowserWindow> = new Map();
 
-  /** Tạo và hiển thị một overlay window mới cho một pet instance */
+  /**
+   * Creates and displays a new overlay window for a pet instance.
+   * @param instanceId Unique ID of the pet instance.
+   * @param initialX Initial X coordinate.
+   * @param initialY Initial Y coordinate.
+   */
   create(instanceId: string, initialX?: number, initialY?: number): BrowserWindow {
-    // Nếu đã có window cho instance này rồi thì không tạo mới
+    // If a window already exists for this instance, focus and show it
     const existing = this.windows.get(instanceId);
     if (existing) {
       if (existing.isMinimized()) existing.restore();
@@ -17,7 +22,7 @@ export class OverlayWindow {
 
     const { workArea } = screen.getPrimaryDisplay();
 
-    // Vị trí mặc định ngẫu nhiên một chút để các pet không chồng khít lên nhau khi spawn
+    // Default position with a slight random offset to prevent stacking
     const randomOffset = Math.floor(Math.random() * 100);
     const x = initialX !== undefined ? initialX : workArea.x + workArea.width - OVERLAY_WINDOW.WIDTH - 150 - randomOffset;
     const y = initialY !== undefined ? initialY : workArea.y + workArea.height - OVERLAY_WINDOW.HEIGHT - 150 - randomOffset;
@@ -36,8 +41,8 @@ export class OverlayWindow {
       hasShadow: false,
       title: `MiniPet-${instanceId}`,
       icon: app.isPackaged
-        ? path.join(process.resourcesPath, 'icons', `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
-        : path.join(app.getAppPath(), `src/assets/icons/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
+        ? path.join(process.resourcesPath, APP_PATHS.ICONS_ASSETS, `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
+        : path.join(app.getAppPath(), `src/assets/${APP_PATHS.ICONS_ASSETS}/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
       webPreferences: {
         preload: path.join(__dirname, 'preload.js'),
         contextIsolation: true,
@@ -46,13 +51,10 @@ export class OverlayWindow {
       },
     });
 
-    // Đảm bảo pet luôn nổi lên trên cùng, kể cả khi mở trình duyệt web hay app full screen (đặc biệt trên Windows)
+    // Ensure pet remains on top of all other windows, including full-screen apps
     win.setAlwaysOnTop(true, 'screen-saver');
 
-    // Click-through: Bỏ mặc định để có thể nhận event Drag & Drop
-    // win.setIgnoreMouseEvents(true, { forward: true });
-
-    // Load overlay HTML với instanceId trong query param để renderer biết mình là ai
+    // Load overlay HTML with instanceId in query params
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
       win.loadURL(`${MAIN_WINDOW_VITE_DEV_SERVER_URL}/src/renderer/overlay/index.html?id=${instanceId}`);
     } else {
@@ -71,17 +73,23 @@ export class OverlayWindow {
     return win;
   }
 
-  /** Lấy cửa sổ theo ID */
+  /**
+   * Returns the window instance by ID.
+   */
   getWindow(instanceId: string): BrowserWindow | undefined {
     return this.windows.get(instanceId);
   }
 
-  /** Lấy tất cả cửa sổ */
+  /**
+   * Returns all active overlay windows.
+   */
   getAllWindows(): BrowserWindow[] {
     return Array.from(this.windows.values());
   }
 
-  /** Xóa một pet instance cụ thể */
+  /**
+   * Closes and removes a specific pet instance window.
+   */
   destroy(instanceId: string): void {
     const win = this.windows.get(instanceId);
     if (win) {
@@ -90,7 +98,9 @@ export class OverlayWindow {
     }
   }
 
-  /** Xóa tất cả pet instances */
+  /**
+   * Closes and removes all active pet instance windows.
+   */
   destroyAll(): void {
     this.windows.forEach((win) => win.close());
     this.windows.clear();

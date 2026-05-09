@@ -1,3 +1,7 @@
+/**
+ * IntelligenceManager — Orchestrates proactive pet behaviors based on application context and time.
+ */
+
 import { exec } from 'child_process';
 import { IPC_CHANNELS } from '../../shared/types/ipc.types';
 import { translations } from '../../shared/i18n/translations';
@@ -16,13 +20,19 @@ export class IntelligenceManager {
     this.petManager = petManager;
   }
 
+  /**
+   * Starts the intelligence cycle.
+   */
   start() {
     this.stop();
     this.scheduleNextCheck();
   }
 
+  /**
+   * Schedules the next contextual check at a semi-random interval.
+   */
   private scheduleNextCheck() {
-    // Ngẫu nhiên từ 30s (30000ms) đến 60s (60000ms)
+    // Random delay between 30s (30000ms) and 60s (60000ms)
     const delay = Math.floor(Math.random() * (60000 - 30000 + 1)) + 30000;
     this.interval = setTimeout(() => {
       this.checkContext();
@@ -30,6 +40,9 @@ export class IntelligenceManager {
     }, delay);
   }
 
+  /**
+   * Stops the intelligence cycle.
+   */
   stop() {
     if (this.interval) {
       clearTimeout(this.interval);
@@ -37,13 +50,20 @@ export class IntelligenceManager {
     }
   }
 
+  /**
+   * Performs contextual checks based on the operating system and current time.
+   */
   private async checkContext() {
     if (process.platform === 'darwin') {
       this.checkActiveAppMac();
     }
+    // Windows support can be added here
     this.checkTime();
   }
 
+  /**
+   * macOS: Uses AppleScript to detect the frontmost application.
+   */
   private checkActiveAppMac() {
     const script = `tell application "System Events" to get name of first process whose frontmost is true`;
     exec(`osascript -e '${script}'`, (error, stdout) => {
@@ -52,14 +72,15 @@ export class IntelligenceManager {
       
       const isBrowser = currentApp.includes('Chrome') || currentApp.includes('Safari') || currentApp.includes('Arc');
 
-      // Luôn cho phép nhận xét nếu là App khác, hoặc nếu là Browser thì kiểm tra Tab
+      // Generate a comment if the app has changed and is not Electron/MiniPet
       if (currentApp !== this.lastApp && currentApp !== 'Electron' && currentApp !== 'MiniPet') {
         this.lastApp = currentApp;
         this.generateAppComment(currentApp);
       } else if (isBrowser) {
+        // If it's a browser, check the active tab title
         this.checkBrowserTab(currentApp);
       } else if (currentApp === this.lastApp && currentApp !== 'Electron' && currentApp !== 'MiniPet') {
-        // Nếu vẫn ở App cũ quá lâu, thỉnh thoảng (30%) vẫn nói gì đó cho đỡ chán
+        // Occasional comments (30% chance) if the user stays in the same app for a long time
         if (Math.random() < 0.3) {
           this.generateAppComment(currentApp);
         }
@@ -67,6 +88,9 @@ export class IntelligenceManager {
     });
   }
 
+  /**
+   * Generates a relevant comment based on the active application name.
+   */
   private generateAppComment(appName: string) {
     const lang = this.petManager.getSettings().language || 'en';
     const t = translations[lang];
@@ -101,6 +125,9 @@ export class IntelligenceManager {
     }
   }
 
+  /**
+   * macOS: Uses AppleScript to fetch the title of the active browser tab.
+   */
   private checkBrowserTab(browserName: string) {
     let script = '';
     if (browserName.includes('Chrome')) {
@@ -117,7 +144,7 @@ export class IntelligenceManager {
       if (error) return;
       const title = stdout.trim();
       
-      // Nếu tiêu đề khác, hoặc kể cả trùng tiêu đề nhưng ngẫu nhiên (40%) vẫn nói để đa dạng
+      // Comment if the tab title has changed or occasionally (40% chance) for variety
       if (title && (title !== this.lastTabTitle || Math.random() < 0.4)) {
         this.lastTabTitle = title;
         this.generateBrowserComment(title);
@@ -125,6 +152,9 @@ export class IntelligenceManager {
     });
   }
 
+  /**
+   * Generates a relevant comment based on the browser tab title.
+   */
   private generateBrowserComment(title: string) {
     const lang = this.petManager.getSettings().language || 'en';
     const t = translations[lang];
@@ -152,6 +182,9 @@ export class IntelligenceManager {
     }
   }
 
+  /**
+   * Generates time-specific comments (e.g., lunch time or working late).
+   */
   private checkTime() {
     const lang = this.petManager.getSettings().language || 'en';
     const t = translations[lang];
@@ -170,6 +203,9 @@ export class IntelligenceManager {
     }
   }
 
+  /**
+   * Broadcasts a speech message to all active pet windows.
+   */
   private say(text: string) {
     this.overlay.getAllWindows().forEach(win => {
       if (!win.isDestroyed()) {

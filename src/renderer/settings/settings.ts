@@ -1,9 +1,12 @@
 import { PetListItem } from '../../shared/types/pet.types';
 import { UserSettings } from '../../shared/types/settings.types';
 import { translations, Language } from '../../shared/i18n/translations';
+import { INTERACTION } from '../../shared/constants';
 
+/**
+ * Main initialization function for the settings UI.
+ */
 async function initSettings(): Promise<void> {
-  console.log('Settings: Initializing...');
   const pets = await window.electronAPI.getPetList();
   const settings = await window.electronAPI.getSettings();
 
@@ -14,9 +17,8 @@ async function initSettings(): Promise<void> {
   setupEventListeners(settings);
   setupPomodoro(settings.language || 'en');
 
-  // Listen for updates from main process
+  // Listen for settings updates from the main process
   window.electronAPI.onSettingsUpdate(async (data: any) => {
-    console.log('Settings: Received update from main process', data);
     const updatedSettings = data.settings;
     const updatedPets = await window.electronAPI.getPetList();
     await renderPetGallery(updatedPets, updatedSettings);
@@ -25,6 +27,9 @@ async function initSettings(): Promise<void> {
   });
 }
 
+/**
+ * Applies internationalization translations to elements with data-i18n attribute.
+ */
 function applyTranslations(lang: Language): void {
   const t = translations[lang];
   const elements = document.querySelectorAll('[data-i18n]');
@@ -36,6 +41,9 @@ function applyTranslations(lang: Language): void {
   });
 }
 
+/**
+ * Renders the list of currently active pet instances.
+ */
 async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Promise<void> {
   const container = document.getElementById('active-pets-list')!;
   container.innerHTML = '';
@@ -49,6 +57,7 @@ async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Pr
   for (const instance of settings.activePets) {
     const petType = pets.find(p => p.slug === instance.slug);
     if (!petType) continue;
+    
     const lang = (settings.language || 'en') as Language;
     const t = translations[lang];
     const item = document.createElement('div');
@@ -67,13 +76,12 @@ async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Pr
     removeBtn.innerHTML = '×';
     removeBtn.title = t.removePet;
     
-    // Nếu chỉ có 1 pet, không cho phép xoá (ẩn nút)
+    // Prevent removing the last remaining pet
     if (settings.activePets.length <= 1) {
       removeBtn.style.display = 'none';
     }
     
     removeBtn.addEventListener('click', async () => {
-      console.log('Settings: Removing pet instance:', instance.id);
       await (window.electronAPI as any).removePet(instance.id);
     });
     
@@ -84,6 +92,9 @@ async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Pr
   }
 }
 
+/**
+ * Renders the gallery of available pets for spawning.
+ */
 async function renderPetGallery(pets: PetListItem[], settings: UserSettings): Promise<void> {
   const gallery = document.getElementById('pet-gallery')!;
   gallery.innerHTML = '';
@@ -106,7 +117,7 @@ async function renderPetGallery(pets: PetListItem[], settings: UserSettings): Pr
     card.appendChild(thumb);
     card.appendChild(name);
 
-    // Add delete button if not default
+    // Add delete button for non-default (imported) pets
     if (!pet.isDefault) {
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'delete-pet-btn';
@@ -127,22 +138,23 @@ async function renderPetGallery(pets: PetListItem[], settings: UserSettings): Pr
     }
 
     card.addEventListener('click', async () => {
-      console.log('Settings: Card clicked for pet:', pet.slug);
       const s = await window.electronAPI.getSettings();
-      if (s.activePets.length >= 5) {
+      if (s.activePets.length >= INTERACTION.MAX_ACTIVE_PETS) {
         const lang = (s.language || 'en') as Language;
         const t = translations[lang];
         alert(t.maxPetsReached);
         return;
       }
       await (window.electronAPI as any).spawnPet(pet.slug);
-      console.log('Settings: Spawn request sent for:', pet.slug);
     });
 
     gallery.appendChild(card);
   }
 }
 
+/**
+ * Populates the settings form with current values.
+ */
 function populateForm(settings: UserSettings): void {
   const langSelect = document.getElementById('language-select') as HTMLSelectElement;
   const scaleRange = document.getElementById('scale-range') as HTMLInputElement;
@@ -159,6 +171,9 @@ function populateForm(settings: UserSettings): void {
   if (startupToggle) startupToggle.checked = settings.launchAtStartup || false;
 }
 
+/**
+ * Registers event listeners for settings controls.
+ */
 function setupEventListeners(settings: UserSettings): void {
   const langSelect = document.getElementById('language-select') as HTMLSelectElement;
   const scaleRange = document.getElementById('scale-range') as HTMLInputElement;
@@ -199,6 +214,9 @@ function setupEventListeners(settings: UserSettings): void {
   });
 }
 
+/**
+ * Initializes and manages the Pomodoro timer UI components.
+ */
 async function setupPomodoro(lang: Language): Promise<void> {
   const focusInput = document.getElementById('pomo-focus-time') as HTMLInputElement;
   const breakInput = document.getElementById('pomo-break-time') as HTMLInputElement;

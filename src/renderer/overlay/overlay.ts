@@ -1,17 +1,20 @@
 import { SpriteRenderer } from './engine/sprite-renderer';
 import { AnimationController } from './engine/animation-controller';
 import { PetStateMachine } from './engine/pet-state-machine';
-import { PETDEX_SPRITE } from '../../shared/constants';
+import { PETDEX_SPRITE, INTERACTION } from '../../shared/constants';
 import { translations, Language } from '../../shared/i18n/translations';
 
 let isAlarming = false;
 let currentScale = 1.0;
 let isSpeechVisible = false;
-let speechTimeout: any = null;
+let speechTimeout: NodeJS.Timeout | null = null;
 let currentLanguage: Language = 'en';
 let instanceId: string | null = null;
 let lastGlobalSpeechTime = 0;
 
+/**
+ * Initializes the overlay pet instance.
+ */
 async function init(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   instanceId = params.get('id');
@@ -22,18 +25,18 @@ async function init(): Promise<void> {
 
   const canvas = document.getElementById('pet-canvas') as HTMLCanvasElement;
 
-  // 1. Lấy pet config theo ID
+  // 1. Fetch pet instance configuration
   const petData: any = await window.electronAPI.getInstanceConfig(instanceId);
   if (!petData) return;
 
-  // 2. Khởi tạo renderer
+  // 2. Initialize the sprite renderer
   const renderer = new SpriteRenderer(
     canvas,
     PETDEX_SPRITE.FRAME_WIDTH,
     PETDEX_SPRITE.FRAME_HEIGHT
   );
 
-  // 3. Load spritesheet
+  // 3. Load the pet spritesheet
   if (petData?.spritesheetPath) {
     try {
       await renderer.loadSpritesheet(petData.spritesheetPath);
@@ -42,7 +45,7 @@ async function init(): Promise<void> {
     }
   }
 
-  // 4. Khởi tạo animation
+  // 4. Initialize animation controllers and state machine
   const savedSettings: any = await window.electronAPI.getSettings();
   const initialScale = Number(petData.scale || savedSettings?.scale) || 1.0;
   const isWalkingEnabled = savedSettings?.enableWalking !== false;
@@ -55,16 +58,16 @@ async function init(): Promise<void> {
 
   currentScale = initialScale;
 
-  // Khởi tạo kích thước cửa sổ
+  // Sync window dimensions with pet scale
   syncWindowSize();
 
   // --- Multi-Pet: Chasing Logic ---
   window.electronAPI.onPositionsUpdate((data: any) => {
     const { positions } = data;
-    // Tìm các pet khác (loại trừ chính mình)
+    // Identify other pet instances
     const otherPets = positions.filter((p: any) => p.id !== instanceId);
     if (otherPets.length > 0) {
-      // Có 5% cơ hội Pet sẽ muốn "đuổi theo" một bạn khác nếu đang đi bộ
+      // Small chance (5%) for a pet to "chase" another when walking
       if (Math.random() < 0.05 && stateMachine.getState() === 'walk') {
         const target = otherPets[Math.floor(Math.random() * otherPets.length)];
         controller.setTarget(target.x, target.y);
@@ -72,7 +75,7 @@ async function init(): Promise<void> {
     }
   });
 
-  // --- Events ---
+  // --- Global IPC Events ---
   window.electronAPI.onPing(() => {
     stateMachine.notify();
     showSpeech(getRandomPingSpeech());
@@ -91,20 +94,20 @@ async function init(): Promise<void> {
   window.electronAPI.onPomoTick((state: any) => {
     if (state.finished) {
       const t = translations[currentLanguage];
-      // Do main process đã đổi phiên (toggle isWorkSession) ngay khi hết giờ,
-      // nên nếu state hiện tại đang là nghỉ ngơi (!state.isWorkSession) thì có nghĩa là vừa học xong.
-      showSpeech(!state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
+      // Note: main process toggles isWorkSession immediately upon expiry.
+      // If state.isWorkSession is now false, it means a focus session just ended.
+      showSpeech(!state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, INTERACTION.SPEECH_DURATION_LONG);
     }
   });
 
   setupRandomSpeech(stateMachine);
 
-  // 5. Settings update
+  // --- Settings Update Handling ---
   window.electronAPI.onSettingsUpdate(async (data: any) => {
     const { settings } = data;
     currentLanguage = settings.language || 'en';
     
-    // Tìm cấu hình instance của mình trong settings mới
+    // Find this instance's specific configuration
     const myInstance = settings.activePets.find((p: any) => p.id === instanceId);
     if (myInstance) {
       currentScale = myInstance.scale || settings.scale;
@@ -115,7 +118,7 @@ async function init(): Promise<void> {
     }
   });
 
-  // --- Intelligence ---
+  // --- Intelligence & Sync ---
   window.electronAPI.onPetSay((text: string) => {
     showSpeech(text);
   });
@@ -127,6 +130,9 @@ async function init(): Promise<void> {
   setupMouseInteraction(canvas, stateMachine);
 }
 
+/**
+ * Sets up mouse and drag-and-drop interactions.
+ */
 function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetStateMachine): void {
   let isDragging = false;
   let wasDragged = false;
@@ -169,7 +175,7 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   });
 
   let clickCount = 0;
-  let clickTimer: any = null;
+  let clickTimer: NodeJS.Timeout | null = null;
 
   canvas.addEventListener('click', () => {
     if (isAlarming) {
@@ -213,11 +219,11 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     window.electronAPI.openSettings();
   });
 
-  // --- File "Eating" (Drag & Drop) ---
+  // --- File "Eating" (Drag & Drop Triggers) ---
   canvas.addEventListener('dragover', e => {
     e.preventDefault();
     e.stopPropagation();
-    stateMachine.forceState('jump'); // Pet hào hứng khi thấy "đồ ăn"
+    stateMachine.forceState('jump'); // Excited reaction to food
   });
 
   canvas.addEventListener('dragleave', () => {
@@ -233,7 +239,7 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       const t = translations[currentLanguage];
       const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
 
-      stateMachine.forceState('eat'); // Chuyển sang animation ăn
+      stateMachine.forceState('eat'); // Play eating animation
       showSpeech(pickRandom(t.eating));
 
       const allPaths: string[] = [];
@@ -246,9 +252,7 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       }
 
       if (allPaths.length > 0) {
-        console.log('Overlay: Eating files:', allPaths);
-        const result = await window.electronAPI.eatFile(allPaths);
-        console.log('Overlay: Eat files result:', result);
+        await window.electronAPI.eatFile(allPaths);
       }
     } else {
       stateMachine.transitionTo('idle');
@@ -256,27 +260,29 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   });
 }
 
-/** Tự động cân chỉnh kích thước cửa sổ để không bị xén hình */
+/**
+ * Automatically adjusts the window size to prevent cropping, especially when speech bubbles are visible.
+ */
 function syncWindowSize(): void {
   const safeScale = Number(currentScale) || 1.0;
   
-  // Chỉ thêm headroom nếu đang hiện lời thoại
+  // Add headroom only if speech is visible
   const baseHeadroom = 60;
   const headroom = isSpeechVisible ? Math.max(60, Math.ceil(baseHeadroom * safeScale)) : 0;
   
   const petWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale);
   const petHeight = Math.ceil(PETDEX_SPRITE.FRAME_HEIGHT * safeScale);
   
-  // Chiều cao tổng = headroom + chiều cao pet
   const totalHeight = headroom + petHeight;
-  
-  // Chiều rộng: Nếu có lời thoại thì rộng hơn (300), nếu không thì khít petWidth
   const totalWidth = isSpeechVisible ? Math.max(300, petWidth + 40) : petWidth;
 
   window.electronAPI.resizeWindow(totalWidth, totalHeight);
 }
 
-function showSpeech(text: string, duration: number = 4000): void {
+/**
+ * Displays a speech bubble with the given text for a specific duration.
+ */
+function showSpeech(text: string, duration: number = INTERACTION.SPEECH_DURATION_DEFAULT): void {
   const bubble = document.getElementById('speech-bubble') as HTMLElement;
   if (!bubble) return;
   if (speechTimeout) clearTimeout(speechTimeout);
@@ -284,7 +290,7 @@ function showSpeech(text: string, duration: number = 4000): void {
   isSpeechVisible = true;
   syncWindowSize();
 
-  // Khi bắt đầu nói, thông báo cho các pet khác giữ im lặng
+  // Notify other pets to stay silent while this one is speaking
   window.electronAPI.notifySpeaking();
 
   const safeScale = Number(currentScale) || 1.0;
@@ -302,6 +308,9 @@ function showSpeech(text: string, duration: number = 4000): void {
   speechTimeout = setTimeout(hideSpeech, duration);
 }
 
+/**
+ * Hides the speech bubble.
+ */
 function hideSpeech(): void {
   const bubble = document.getElementById('speech-bubble');
   if (bubble) bubble.classList.remove('visible');
@@ -316,31 +325,37 @@ function hideSpeech(): void {
   }
 }
 
+/**
+ * Returns a random speech text for ping responses.
+ */
 function getRandomPingSpeech(): string {
   const t = translations[currentLanguage];
   const options = t.pingResponses || [t.hello, '🐾', '❤️', '✨'];
-  return options[Math.floor(Math.random() * options.length)];
+  const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
+  return pickRandom(options);
 }
 
+/**
+ * Sets up a background interval for occasional random speech.
+ */
 function setupRandomSpeech(stateMachine: PetStateMachine): void {
   setInterval(() => {
-    // Chỉ nói chuyện vu vơ nếu không có pet nào đã nói trong vòng 10 giây qua
+    // Only speak randomly if no one has spoken recently across all instances
     const timeSinceLastSpeech = Date.now() - lastGlobalSpeechTime;
     
-    if (!isSpeechVisible && !isAlarming && timeSinceLastSpeech > 10000 && Math.random() < 0.1) {
+    if (!isSpeechVisible && !isAlarming && timeSinceLastSpeech > INTERACTION.SPEECH_SYNC_COOLDOWN && Math.random() < INTERACTION.RANDOM_SPEECH_CHANCE) {
       const state = stateMachine.getState();
       const t = translations[currentLanguage];
       
       if (state === 'sleep') {
         showSpeech('Zzz...');
       } else {
-        // Sử dụng mảng randomSpeeches để đa dạng nội dung
         const choices = t.randomSpeeches || ['🐾', '❤️', '✨'];
         const speech = choices[Math.floor(Math.random() * choices.length)];
         showSpeech(speech);
       }
     }
-  }, 15000);
+  }, INTERACTION.RANDOM_SPEECH_INTERVAL);
 }
 
 init().catch(console.error);

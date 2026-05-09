@@ -1,3 +1,7 @@
+/**
+ * PomodoroManager — Manages focus/break timer logic and coordinates pet animations.
+ */
+
 import { BrowserWindow, ipcMain } from 'electron';
 
 export class PomodoroManager {
@@ -12,15 +16,21 @@ export class PomodoroManager {
     this.setupIpc();
   }
 
+  /**
+   * Sets up IPC listeners for Pomodoro control.
+   */
   private setupIpc() {
     ipcMain.handle('pomo:get-state', () => this.getState());
+    
     ipcMain.on('pomo:start', (_event, focus: number, breakMin: number) => {
       this.focusMinutes = focus;
       this.breakMinutes = breakMin;
       this.start();
     });
+    
     ipcMain.on('pomo:pause', () => this.pause());
     ipcMain.on('pomo:reset', () => this.reset());
+    
     ipcMain.on('pomo:update-config', (_event, focus: number, breakMin: number) => {
       this.focusMinutes = focus;
       this.breakMinutes = breakMin;
@@ -31,6 +41,9 @@ export class PomodoroManager {
     });
   }
 
+  /**
+   * Returns the current state of the Pomodoro timer.
+   */
   private getState() {
     return {
       timeLeft: this.timeLeft,
@@ -41,6 +54,9 @@ export class PomodoroManager {
     };
   }
 
+  /**
+   * Starts or resumes the countdown timer.
+   */
   private start() {
     if (this.timerId) return;
 
@@ -54,7 +70,7 @@ export class PomodoroManager {
     this.timerId = setInterval(() => {
       this.timeLeft--;
       
-      // Gửi thời gian mới cho tất cả cửa sổ để hiển thị
+      // Update all windows with the new time
       this.broadcastState();
 
       if (this.timeLeft <= 0) {
@@ -63,6 +79,9 @@ export class PomodoroManager {
     }, 1000);
   }
 
+  /**
+   * Pauses the countdown timer.
+   */
   private pause() {
     if (this.timerId) {
       clearInterval(this.timerId);
@@ -72,6 +91,9 @@ export class PomodoroManager {
     }
   }
 
+  /**
+   * Resets the timer to the beginning of a focus session.
+   */
   private reset() {
     this.pause();
     this.isWorkSession = true;
@@ -80,26 +102,34 @@ export class PomodoroManager {
     this.broadcastState();
   }
 
+  /**
+   * Handles the end of a session (focus or break).
+   */
   private handleEnd() {
     this.pause();
 
-    // 1. Ra lệnh cho Pet nhảy LIÊN TỤC (không có timeout)
+    // 1. Notify all pet overlays to start the alarm/jump animation
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('pet:start-alarm');
     });
 
-    // 2. Đổi phiên
+    // 2. Toggle session type
     this.isWorkSession = !this.isWorkSession;
     this.timeLeft = this.isWorkSession ? this.focusMinutes * 60 : this.breakMinutes * 60;
     
-    // Gửi thông báo kết thúc để Overlay hiện lời nhắn
+    // Broadcast "finished" event to trigger speech bubbles in overlays
     this.broadcastState({ finished: true });
   }
 
+  /**
+   * Broadcasts the timer state to all renderer windows.
+   */
   private broadcastState(extra = {}) {
     const state = { ...this.getState(), ...extra };
     BrowserWindow.getAllWindows().forEach(win => {
-      win.webContents.send('pomo:tick', state);
+      if (!win.isDestroyed()) {
+        win.webContents.send('pomo:tick', state);
+      }
     });
   }
 }

@@ -1,5 +1,5 @@
 /**
- * PetManager — Central pet management.
+ * PetManager — Centralized management for all pet assets, instances, and settings.
  */
 
 import { app, shell } from 'electron';
@@ -9,7 +9,7 @@ import { pathToFileURL } from 'url';
 import { PetLoader } from './pet-loader';
 import { UserSettings, DEFAULT_SETTINGS, PetInstance } from '../../shared/types/settings.types';
 import { LoadedPet, PetListItem } from '../../shared/types/pet.types';
-import { APP_PATHS } from '../../shared/constants';
+import { APP_PATHS, INTERACTION, OVERLAY_WINDOW } from '../../shared/constants';
 
 export class PetManager {
   private loader: PetLoader;
@@ -29,32 +29,37 @@ export class PetManager {
     this.settingsPath = path.join(userData, APP_PATHS.SETTINGS_FILE);
   }
 
+  /**
+   * Links window managers to the pet manager.
+   */
   setWindowManagers(overlay: any, settings: any) {
     this.overlayWindow = overlay;
     this.settingsWindow = settings;
   }
 
-  /** Init — load settings + scan pets */
+  /**
+   * Initializes the manager: loads settings and scans pet directory.
+   */
   async init(): Promise<void> {
     try {
       await fs.mkdir(this.petsDir, { recursive: true });
       await this.loadSettings();
 
-      // Luôn copy default pets để cập nhật pet mới
+      // Always ensure default pets are up to date in the user data directory
       await this.copyDefaultPets();
 
-      // Scan pets
+      // Scan available pets
       this.pets = await this.loader.scanPetsDirectory(this.petsDir);
 
-      // Đảm bảo có ít nhất 1 pet trong activePets nếu chưa có gì
+      // Ensure at least one pet is active if none are saved
       if (this.pets.length > 0 && this.settings.activePets.length === 0) {
         const slug = this.settings.activePetSlug || this.pets[0].manifest.slug;
         const id = Math.random().toString(36).substring(2, 11);
         this.settings.activePets.push({
           id,
           slug,
-          x: 200 + Math.random() * 200,
-          y: 200 + Math.random() * 200,
+          x: OVERLAY_WINDOW.DEFAULT_X + Math.random() * 200,
+          y: OVERLAY_WINDOW.DEFAULT_Y + Math.random() * 200,
           scale: this.settings.scale,
         });
         this.settings.activePetSlug = slug;
@@ -69,13 +74,18 @@ export class PetManager {
     }
   }
 
-  /** Spawn all saved pets (call this after window manager is ready) */
+  /**
+   * Spawns all saved pet instances. Call after window manager is ready.
+   */
   async spawnSavedPets(): Promise<void> {
     for (const instance of this.settings.activePets) {
       this.overlayWindow.create(instance.id, instance.x, instance.y);
     }
   }
 
+  /**
+   * Returns a list of all installed pets for the UI.
+   */
   getInstalledPets(): PetListItem[] {
     return this.pets.map(p => ({
       slug: p.manifest.slug,
@@ -87,7 +97,9 @@ export class PetManager {
     }));
   }
 
-  /** Lấy config của một pet instance cụ thể */
+  /**
+   * Fetches the configuration for a specific pet instance.
+   */
   getPetInstanceConfig(instanceId: string): any {
     const instance = this.settings.activePets.find(inst => inst.id === instanceId);
     if (!instance) return null;
@@ -103,10 +115,12 @@ export class PetManager {
     };
   }
 
-  /** Triệu hồi pet mới */
+  /**
+   * Spawns a new pet instance.
+   */
   async spawnPet(slug: string): Promise<PetInstance | null> {
-    if (this.settings.activePets.length >= 5) {
-      console.warn('PetManager: Maximum 5 pets allowed.');
+    if (this.settings.activePets.length >= INTERACTION.MAX_ACTIVE_PETS) {
+      console.warn(`PetManager: Maximum ${INTERACTION.MAX_ACTIVE_PETS} pets allowed.`);
       return null;
     }
 
@@ -117,13 +131,13 @@ export class PetManager {
     const newInstance: PetInstance = {
       id,
       slug,
-      x: 200 + Math.random() * 200,
-      y: 200 + Math.random() * 200,
+      x: OVERLAY_WINDOW.DEFAULT_X + Math.random() * 200,
+      y: OVERLAY_WINDOW.DEFAULT_Y + Math.random() * 200,
       scale: this.settings.scale,
     };
 
     this.settings.activePets.push(newInstance);
-    this.settings.activePetSlug = slug; // Keep for compatibility
+    this.settings.activePetSlug = slug; // Legacy support
     await this.saveSettings();
 
     if (this.overlayWindow) {
@@ -134,9 +148,11 @@ export class PetManager {
     return newInstance;
   }
 
-  /** Xoá một instance pet */
+  /**
+   * Removes a specific pet instance.
+   */
   async removePet(instanceId: string): Promise<void> {
-    // Luôn giữ lại ít nhất 1 pet
+    // Maintain at least one active pet
     if (this.settings.activePets.length <= 1) {
       console.warn('PetManager: Cannot remove the last active pet.');
       return;
@@ -152,18 +168,26 @@ export class PetManager {
     this.notifySettingsUpdate();
   }
 
+  /**
+   * Returns the spritesheet URL for a given pet slug.
+   */
   getSpritesheetURL(slug: string): string | null {
     const pet = this.pets.find(p => p.manifest.slug === slug);
     return pet ? pathToFileURL(pet.spritesheetPath).href : null;
   }
 
+  /**
+   * Returns the current user settings.
+   */
   getSettings(): UserSettings {
     return { ...this.settings };
   }
 
-  /** Cập nhật settings */
+  /**
+   * Updates and persists user settings.
+   */
   async updateSettings(newSettings: Partial<UserSettings>): Promise<void> {
-    // Đảm bảo không cho phép xoá hết pet thông qua updateSettings
+    // Prevent clearing all active pets via settings update
     if (newSettings.activePets !== undefined && newSettings.activePets.length === 0) {
       console.warn('PetManager: Attempted to clear all active pets. Blocking.');
       delete newSettings.activePets;
@@ -172,11 +196,11 @@ export class PetManager {
     this.settings = { ...this.settings, ...newSettings };
     await this.saveSettings();
 
-    // Xử lý khởi động cùng hệ thống (Launch at Startup)
+    // Handle "Launch at Startup" logic
     if (newSettings.launchAtStartup !== undefined) {
       let shouldOpenAtLogin = newSettings.launchAtStartup;
 
-      // Trên macOS dev mode, không hỗ trợ truyền args nên sẽ mở nhầm default Electron
+      // macOS dev mode doesn't support passing arguments correctly for startup items
       if (!app.isPackaged && process.platform === 'darwin') {
         if (shouldOpenAtLogin) {
           console.warn('PetManager: Launch at Startup is not supported in development on macOS.');
@@ -186,7 +210,7 @@ export class PetManager {
         }
       }
 
-      const loginSettings: any = {
+      const loginSettings: Electron.Settings = {
         openAtLogin: shouldOpenAtLogin,
         path: process.platform === 'win32' ? app.getPath('exe') : undefined,
       };
@@ -198,7 +222,7 @@ export class PetManager {
       app.setLoginItemSettings(loginSettings);
     }
 
-    // Nếu thay đổi scale tổng thể, áp dụng cho tất cả pet đang hoạt động
+    // Apply global scale factor to all active instances
     if (newSettings.scale !== undefined) {
       this.settings.activePets.forEach(p => {
         p.scale = newSettings.scale!;
@@ -208,18 +232,22 @@ export class PetManager {
     this.notifySettingsUpdate();
   }
 
-  /** Gửi thông báo cập nhật tới tất cả các cửa sổ */
+  /**
+   * Notifies all windows about settings updates.
+   */
   private notifySettingsUpdate(): void {
     const data = { settings: this.settings };
     
-    // Notify pets
+    // Notify all pet overlays
     this.broadcastToPets('settings:update', data);
     
-    // Notify settings window
+    // Notify settings UI window
     this.settingsWindow?.getWindow()?.webContents.send('settings:update', data);
   }
 
-  /** Cập nhật vị trí của một pet instance */
+  /**
+   * Updates the coordinates of a specific pet instance.
+   */
   async updateInstancePosition(instanceId: string, x: number, y: number): Promise<void> {
     const instance = this.settings.activePets.find(inst => inst.id === instanceId);
     if (instance) {
@@ -227,14 +255,16 @@ export class PetManager {
       instance.y = y;
       await this.saveSettings();
       
-      // Broadcast vị trí mới cho các pet khác (để chúng đuổi nhau)
+      // Broadcast new positions to other pets (enables "chasing" behavior)
       this.broadcastToPets('pets:positions-updated', { 
         positions: this.settings.activePets.map(p => ({ id: p.id, x: p.x, y: p.y }))
       });
     }
   }
 
-  /** Nhập thêm Pet mới từ thư mục hoặc file ZIP */
+  /**
+   * Imports a new pet from a folder or ZIP file.
+   */
   async importPet(sourcePath: string): Promise<PetListItem[]> {
     let tempDir = '';
     const isZip = sourcePath.toLowerCase().endsWith('.zip');
@@ -249,10 +279,10 @@ export class PetManager {
         tempDir = path.join(app.getPath('temp'), `minipet-import-${Date.now()}`);
         await fs.mkdir(tempDir, { recursive: true });
         
-        // Giải nén
+        // Extract archive contents
         zip.extractAllTo(tempDir, true);
         
-        // Tìm thư mục chứa pet.json bên trong ZIP
+        // Locate pet.json within the extracted content (handles nested folders)
         const findPetJsonDir = async (dir: string): Promise<string | null> => {
            const entries = await fs.readdir(dir, { withFileTypes: true });
            if (entries.some(e => e.name === 'pet.json' && !e.isDirectory())) {
@@ -282,7 +312,7 @@ export class PetManager {
       
       let slug = manifest.slug || path.basename(extractPath);
       
-      // Đảm bảo tính duy nhất của slug (chống ghi đè khi vô tình trùng tên folder)
+      // Ensure slug uniqueness to prevent accidental overwrites
       const originalSlug = slug;
       let counter = 1;
       while (this.pets.some(p => p.manifest.slug === slug)) {
@@ -292,25 +322,27 @@ export class PetManager {
       
       const targetPath = path.join(this.petsDir, slug);
       
-      // Copy toàn bộ thư mục vào kho Pet của app
+      // Copy pet folder to application data store
       await fs.cp(extractPath, targetPath, { recursive: true });
       console.log(`PetManager: Imported pet ${slug} to ${targetPath}`);
 
-      // Scan lại danh sách Pet
+      // Re-scan pet directory to include the new pet
       this.pets = await this.loader.scanPetsDirectory(this.petsDir);
       return this.getInstalledPets();
     } catch (err) {
       console.error('PetManager: Import failed:', err);
       throw err;
     } finally {
+      // Clean up temporary extraction directory
       if (isZip && tempDir) {
-        // Dọn dẹp thư mục tạm
         await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
       }
     }
   }
 
-  /** Xoá Pet đã nhập */
+  /**
+   * Deletes an imported pet by slug.
+   */
   async deletePet(slug: string): Promise<PetListItem[]> {
     try {
       if (this.defaultPetSlugs.includes(slug)) {
@@ -321,15 +353,14 @@ export class PetManager {
       await fs.rm(targetPath, { recursive: true, force: true });
       console.log(`PetManager: Deleted pet ${slug} from ${targetPath}`);
 
-      // Nếu pet đang xoá nằm trong danh sách active, loại bỏ nó
+      // Remove any active instances of the deleted pet
       this.settings.activePets = this.settings.activePets.filter(p => p.slug !== slug);
       if (this.settings.activePetSlug === slug) {
         this.settings.activePetSlug = this.pets.length > 0 ? this.pets[0].manifest.slug : null;
       }
 
-      // Đảm bảo luôn còn ít nhất 1 pet sau khi xoá
+      // Ensure at least one pet remains active
       if (this.settings.activePets.length === 0 && this.pets.length > 0) {
-        // Tìm pet đầu tiên không phải cái vừa xoá (scanPetsDirectory sẽ được gọi sau, nên dùng danh sách hiện tại)
         const remainingPets = this.pets.filter(p => p.manifest.slug !== slug);
         if (remainingPets.length > 0) {
           const nextSlug = remainingPets[0].manifest.slug;
@@ -337,8 +368,8 @@ export class PetManager {
           this.settings.activePets.push({
             id,
             slug: nextSlug,
-            x: 200 + Math.random() * 200,
-            y: 200 + Math.random() * 200,
+            x: OVERLAY_WINDOW.DEFAULT_X + Math.random() * 200,
+            y: OVERLAY_WINDOW.DEFAULT_Y + Math.random() * 200,
             scale: this.settings.scale,
           });
           this.settings.activePetSlug = nextSlug;
@@ -347,15 +378,11 @@ export class PetManager {
       
       await this.saveSettings();
 
-      // Scan lại danh sách Pet
+      // Update the local pet list
       this.pets = await this.loader.scanPetsDirectory(this.petsDir);
       
-      // Đóng các cửa sổ liên quan
+      // Close and re-spawn pet windows to reflect changes
       if (this.overlayWindow) {
-        const windows = this.overlayWindow.getAllWindows();
-        // Giả sử có cách để biết window nào thuộc slug nào (thông qua config)
-        // Hiện tại đơn giản nhất là refresh lại tất cả hoặc để user tự đóng.
-        // Tốt nhất là spawn lại những con còn lại.
         this.overlayWindow.destroyAll();
         await this.spawnSavedPets();
       }
@@ -368,7 +395,9 @@ export class PetManager {
     }
   }
 
-  /** "Ăn" danh sách file (xoá vào thùng rác) */
+  /**
+   * "Eats" (trashes) specified files.
+   */
   async eatFiles(filePaths: string[]): Promise<{ success: boolean; error?: string }> {
     try {
       for (const filePath of filePaths) {
@@ -382,7 +411,9 @@ export class PetManager {
     }
   }
 
-  /** Gửi tin nhắn tới tất cả pet windows */
+  /**
+   * Broadcasts an IPC message to all active pet windows.
+   */
   private broadcastToPets(channel: string, data: any) {
     if (this.overlayWindow) {
       this.overlayWindow.getAllWindows().forEach((win: any) => {
@@ -391,16 +422,18 @@ export class PetManager {
     }
   }
 
-  // --- Private ---
+  // --- Private Utilities ---
 
+  /**
+   * Copies default pets from the app bundle to the user's pets directory.
+   */
   private async copyDefaultPets(): Promise<void> {
     try {
       const isDev = !app.isPackaged;
       const sourceDir = isDev
-        ? path.join(app.getAppPath(), 'src', 'assets', 'default-pets')
-        : path.join(process.resourcesPath, 'default-pets');
+        ? path.join(app.getAppPath(), 'src', 'assets', APP_PATHS.DEFAULT_PETS_ASSETS)
+        : path.join(process.resourcesPath, APP_PATHS.DEFAULT_PETS_ASSETS);
 
-      // Danh sách các slug mặc định để đánh dấu isDefault
       const entries = await fs.readdir(sourceDir, { withFileTypes: true });
       this.defaultPetSlugs = entries.filter(e => e.isDirectory()).map(e => e.name);
 
@@ -410,13 +443,15 @@ export class PetManager {
     }
   }
 
+  /**
+   * Loads user settings from the file system.
+   */
   private async loadSettings(): Promise<void> {
     try {
       const data = await fs.readFile(this.settingsPath, 'utf8');
       const parsed = JSON.parse(data);
       this.settings = { ...DEFAULT_SETTINGS, ...parsed };
       
-      // Đảm bảo activePets luôn là array
       if (!Array.isArray(this.settings.activePets)) {
         this.settings.activePets = [];
       }
@@ -426,6 +461,9 @@ export class PetManager {
     }
   }
 
+  /**
+   * Persists the current settings to the file system.
+   */
   private async saveSettings(): Promise<void> {
     try {
       await fs.writeFile(this.settingsPath, JSON.stringify(this.settings, null, 2));

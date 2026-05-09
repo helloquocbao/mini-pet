@@ -1,6 +1,7 @@
 import { app, Tray, Menu, nativeImage, MenuItemConstructorOptions } from 'electron';
 import path from 'path';
 import { translations, Language } from '../../shared/i18n/translations';
+import { APP_PATHS } from '../../shared/constants';
 
 interface TrayCallbacks {
   onShowSettings: () => void;
@@ -16,22 +17,29 @@ export class SystemTray {
     this.callbacks = callbacks;
   }
 
+  /**
+   * Creates the system tray icon and menu.
+   * @param lang Display language for the menu.
+   */
   create(lang: Language = 'en'): void {
-    // Determine icon path
     const iconExt = process.platform === 'win32' ? 'ico' : 'png';
     const iconPath = app.isPackaged
-      ? path.join(process.resourcesPath, 'icons', `icon.${iconExt}`)
-      : path.join(app.getAppPath(), `src/assets/icons/icon.${iconExt}`);
+      ? path.join(process.resourcesPath, APP_PATHS.ICONS_ASSETS, `icon.${iconExt}`)
+      : path.join(app.getAppPath(), `src/assets/${APP_PATHS.ICONS_ASSETS}/icon.${iconExt}`);
 
     const icon = nativeImage.createFromPath(iconPath);
 
-    // Resize tray icon to standard size (18x18 is good for macOS/Windows tray)
+    // Standard tray icon size is typically 18x18
     this.tray = new Tray(icon.resize({ width: 18, height: 18 }));
     this.tray.setToolTip('MiniPet Control Center');
 
     this.updateMenu(lang);
   }
 
+  /**
+   * Updates the tray context menu based on the current language.
+   * @param lang Display language.
+   */
   updateMenu(lang: Language): void {
     if (!this.tray) return;
 
@@ -51,6 +59,9 @@ export class SystemTray {
     this.tray.setContextMenu(contextMenu);
   }
 
+  /**
+   * Destroys the tray icon.
+   */
   destroy(): void {
     this.tray?.destroy();
     this.tray = null;

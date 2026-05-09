@@ -1,32 +1,40 @@
 export type PetPosition = 'bottom-left' | 'bottom-right' | 'top-left' | 'top-right';
 
 export interface PetInstance {
+  /** Unique ID for the specific pet instance */
   id: string;
+  /** Slug of the pet type */
   slug: string;
+  /** X coordinate on screen */
   x: number;
+  /** Y coordinate on screen */
   y: number;
+  /** Custom scale for this instance */
   scale: number;
 }
 
 export interface UserSettings {
-  /** Danh sách các pet đang hiển thị (Multi-Pet) */
+  /** List of currently active pet instances (Multi-Pet support) */
   activePets: PetInstance[];
-  /** Slug của pet chính (để tương thích ngược) */
+  /** Primary pet slug (legacy support) */
   activePetSlug: string | null;
-  /** Vị trí pet mặc định */
+  /** Default pet screen corner position */
   position: PetPosition;
-  /** Scale factor mặc định (0.5 → 2.0) */
+  /** Global scale factor (0.5 to 2.0) */
   scale: number;
-  /** Cho phép pet di chuyển ngẫu nhiên */
+  /** Whether pets can wander around the screen */
   enableWalking: boolean;
-  /** Auto-start cùng hệ thống */
+  /** Legacy auto-start setting */
   autoStart: boolean;
-  /** Hiển thị notification qua pet */
+  /** Whether to show speech bubble notifications */
   enableNotifications: boolean;
-  /** Khởi chạy cùng hệ thống */
+  /** Whether the app should launch at system startup */
   launchAtStartup: boolean;
+  /** Last known X coordinate of the primary pet */
   lastX: number | null;
+  /** Last known Y coordinate of the primary pet */
   lastY: number | null;
+  /** App display language */
   language: 'en' | 'vi' | 'fr' | 'zh' | 'it';
 }
 

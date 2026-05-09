@@ -13,11 +13,12 @@ import started from 'electron-squirrel-startup';
 import { PomodoroManager } from './pet/pomodoro-manager';
 import { IntelligenceManager } from './pet/intelligence-manager';
 
+// Handle squirrel startup events
 if (started) {
   app.quit();
 }
 
-// Ẩn Dock icon trên Mac ngay lập tức nếu có thể
+// Hide Dock icon on macOS immediately
 if (process.platform === 'darwin') {
   app.dock?.hide();
 }
@@ -30,36 +31,36 @@ let intelligenceManager: IntelligenceManager;
 let isQuitting = false;
 
 app.whenReady().then(async () => {
-  // Khởi tạo trình quản lý Pomodoro
+  // Initialize Pomodoro Manager
   new PomodoroManager();
 
-  // 1. Init managers
+  // 1. Initialize core managers
   petManager = new PetManager();
   overlayWindow = new OverlayWindow();
   settingsWindow = new SettingsWindow();
 
-  // 2. Connect managers
+  // 2. Link managers
   petManager.setWindowManagers(overlayWindow, settingsWindow);
 
-  // 3. Init pet manager (loads settings)
+  // 3. Initialize Pet Manager (loads settings and default pets)
   await petManager.init();
 
-  // 3b. Init Intelligence Manager
+  // 4. Initialize Intelligence Manager
   intelligenceManager = new IntelligenceManager(overlayWindow, petManager);
   intelligenceManager.start();
 
-  // 4. Register IPC handlers
+  // 5. Register IPC handlers
   registerIpcHandlers(petManager);
 
-  // Thêm handler riêng để mở cửa sổ settings
+  // 6. Handle settings window toggle
   ipcMain.on(IPC_CHANNELS.WINDOW_OPEN_SETTINGS, () => {
     settingsWindow.open();
   });
 
-  // 5. Spawn all active pets
+  // 7. Spawn all active pets from last session
   await petManager.spawnSavedPets();
 
-  // 6. Create system tray
+  // 8. Setup and create system tray
   systemTray = new SystemTray({
     onShowSettings: () => {
       settingsWindow.open();
@@ -84,17 +85,16 @@ app.whenReady().then(async () => {
 });
 
 app.on('activate', () => {
+  // macOS: Re-spawn pets if windows were closed but app is still running
   if (overlayWindow && overlayWindow.getAllWindows().length === 0) {
     petManager.spawnSavedPets();
   }
 });
 
-// Chặn việc app tự thoát khi đóng hết window trên Windows
+// Handle window close behavior
 app.on('window-all-closed', () => {
-  if (process.platform === 'darwin') {
-    // Trên Mac thường không thoát app khi đóng window
-  } else {
-    // Trên Windows, nếu không phải đang quit thì không làm gì cả (chạy ẩn)
+  if (process.platform !== 'darwin') {
+    // On Windows/Linux, only quit if the user explicitly chose to exit
     if (isQuitting) {
       app.quit();
     }

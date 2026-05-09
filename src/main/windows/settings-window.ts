@@ -1,11 +1,14 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'path';
-import { SETTINGS_WINDOW } from '../../shared/constants';
+import { SETTINGS_WINDOW, APP_PATHS } from '../../shared/constants';
 
 export class SettingsWindow {
   private window: BrowserWindow | null = null;
   private forceQuit: boolean = false;
 
+  /**
+   * Opens the settings window or focuses it if already open.
+   */
   open(): void {
     if (this.window && !this.window.isDestroyed()) {
       this.window.show();
@@ -18,8 +21,8 @@ export class SettingsWindow {
       height: SETTINGS_WINDOW.HEIGHT,
       title: 'MiniPet Settings',
       icon: app.isPackaged
-        ? path.join(process.resourcesPath, 'icons', `icon.${process.platform === 'win32' ? 'icon.ico' : 'png'}`)
-        : path.join(app.getAppPath(), `src/assets/icons/icon.${process.platform === 'win32' ? 'icon.ico' : 'png'}`),
+        ? path.join(process.resourcesPath, APP_PATHS.ICONS_ASSETS, `icon.${process.platform === 'win32' ? 'ico' : 'png'}`)
+        : path.join(app.getAppPath(), `src/assets/${APP_PATHS.ICONS_ASSETS}/icon.${process.platform === 'win32' ? 'ico' : 'png'}`),
       resizable: false,
       maximizable: false,
       webPreferences: {
@@ -41,7 +44,7 @@ export class SettingsWindow {
       );
     }
 
-    // Xử lý sự kiện đóng cửa sổ
+    // Handle window close behavior: hide instead of destroy unless forced
     this.window.on('close', (e) => {
       if (!this.forceQuit) {
         e.preventDefault();
@@ -54,16 +57,24 @@ export class SettingsWindow {
     });
   }
 
-  // Phương thức để thực sự đóng cửa sổ khi quit app
+  /**
+   * Sets whether the window should be allowed to close (true when quitting app).
+   */
   setForceQuit(value: boolean): void {
     this.forceQuit = value;
   }
 
+  /**
+   * Force closes the settings window.
+   */
   close(): void {
     this.forceQuit = true;
     this.window?.close();
   }
 
+  /**
+   * Returns the BrowserWindow instance.
+   */
   getWindow(): BrowserWindow | null {
     return this.window;
   }
