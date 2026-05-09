@@ -7,6 +7,14 @@ export class OverlayWindow {
 
   /** Tạo và hiển thị một overlay window mới cho một pet instance */
   create(instanceId: string, initialX?: number, initialY?: number): BrowserWindow {
+    // Nếu đã có window cho instance này rồi thì không tạo mới
+    const existing = this.windows.get(instanceId);
+    if (existing) {
+      if (existing.isMinimized()) existing.restore();
+      existing.show();
+      return existing;
+    }
+
     const { workArea } = screen.getPrimaryDisplay();
 
     // Vị trí mặc định ngẫu nhiên một chút để các pet không chồng khít lên nhau khi spawn

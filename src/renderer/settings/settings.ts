@@ -67,6 +67,11 @@ async function renderActivePets(settings: UserSettings, pets: PetListItem[]): Pr
     removeBtn.innerHTML = '×';
     removeBtn.title = t.removePet;
     
+    // Nếu chỉ có 1 pet, không cho phép xoá (ẩn nút)
+    if (settings.activePets.length <= 1) {
+      removeBtn.style.display = 'none';
+    }
+    
     removeBtn.addEventListener('click', async () => {
       console.log('Settings: Removing pet instance:', instance.id);
       await (window.electronAPI as any).removePet(instance.id);

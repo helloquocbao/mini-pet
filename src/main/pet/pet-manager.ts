@@ -49,7 +49,16 @@ export class PetManager {
       // Đảm bảo có ít nhất 1 pet trong activePets nếu chưa có gì
       if (this.pets.length > 0 && this.settings.activePets.length === 0) {
         const slug = this.settings.activePetSlug || this.pets[0].manifest.slug;
-        await this.spawnPet(slug);
+        const id = Math.random().toString(36).substring(2, 11);
+        this.settings.activePets.push({
+          id,
+          slug,
+          x: 200 + Math.random() * 200,
+          y: 200 + Math.random() * 200,
+          scale: this.settings.scale,
+        });
+        this.settings.activePetSlug = slug;
+        await this.saveSettings();
       }
 
       console.log(
@@ -127,6 +136,12 @@ export class PetManager {
 
   /** Xoá một instance pet */
   async removePet(instanceId: string): Promise<void> {
+    // Luôn giữ lại ít nhất 1 pet
+    if (this.settings.activePets.length <= 1) {
+      console.warn('PetManager: Cannot remove the last active pet.');
+      return;
+    }
+
     this.settings.activePets = this.settings.activePets.filter(inst => inst.id !== instanceId);
     await this.saveSettings();
 
@@ -148,15 +163,26 @@ export class PetManager {
 
   /** Cập nhật settings */
   async updateSettings(newSettings: Partial<UserSettings>): Promise<void> {
+    // Đảm bảo không cho phép xoá hết pet thông qua updateSettings
+    if (newSettings.activePets !== undefined && newSettings.activePets.length === 0) {
+      console.warn('PetManager: Attempted to clear all active pets. Blocking.');
+      delete newSettings.activePets;
+    }
+
     this.settings = { ...this.settings, ...newSettings };
     await this.saveSettings();
 
-    // Xử lý khởi động cùng hệ thống
+    // Xử lý khởi động cùng hệ thống (Launch at Startup)
     if (newSettings.launchAtStartup !== undefined) {
-      app.setLoginItemSettings({
-        openAtLogin: newSettings.launchAtStartup,
-        path: app.getPath('exe'),
-      });
+      if (app.isPackaged) {
+        app.setLoginItemSettings({
+          openAtLogin: newSettings.launchAtStartup,
+          // Trên Mac, tốt nhất không truyền path để Electron tự nhận diện bundle
+          path: process.platform === 'win32' ? app.getPath('exe') : undefined,
+        });
+      } else {
+        console.warn('PetManager: Launch at Startup is only supported in packaged builds.');
+      }
     }
 
     // Nếu thay đổi scale tổng thể, áp dụng cho tất cả pet đang hoạt động
@@ -235,6 +261,24 @@ export class PetManager {
       this.settings.activePets = this.settings.activePets.filter(p => p.slug !== slug);
       if (this.settings.activePetSlug === slug) {
         this.settings.activePetSlug = this.pets.length > 0 ? this.pets[0].manifest.slug : null;
+      }
+
+      // Đảm bảo luôn còn ít nhất 1 pet sau khi xoá
+      if (this.settings.activePets.length === 0 && this.pets.length > 0) {
+        // Tìm pet đầu tiên không phải cái vừa xoá (scanPetsDirectory sẽ được gọi sau, nên dùng danh sách hiện tại)
+        const remainingPets = this.pets.filter(p => p.manifest.slug !== slug);
+        if (remainingPets.length > 0) {
+          const nextSlug = remainingPets[0].manifest.slug;
+          const id = Math.random().toString(36).substring(2, 11);
+          this.settings.activePets.push({
+            id,
+            slug: nextSlug,
+            x: 200 + Math.random() * 200,
+            y: 200 + Math.random() * 200,
+            scale: this.settings.scale,
+          });
+          this.settings.activePetSlug = nextSlug;
+        }
       }
       
       await this.saveSettings();
