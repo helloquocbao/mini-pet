@@ -37,7 +37,7 @@ export class OverlayWindow {
       alwaysOnTop: true,
       skipTaskbar: true,
       resizable: false,
-      focusable: false,
+      focusable: true,
       hasShadow: false,
       title: `MiniPet-${instanceId}`,
       icon: app.isPackaged
@@ -51,8 +51,8 @@ export class OverlayWindow {
       },
     });
 
-    // Ensure pet remains on top of all other windows, including full-screen apps
-    win.setAlwaysOnTop(true, 'screen-saver');
+    // Ensure pet remains on top of normal windows, but not OS-level overlays like drag images
+    win.setAlwaysOnTop(true);
 
     // Load overlay HTML with instanceId in query params
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -85,6 +85,22 @@ export class OverlayWindow {
    */
   getAllWindows(): BrowserWindow[] {
     return Array.from(this.windows.values());
+  }
+
+  /**
+   * Temporarily enables/disables drag-and-drop mode for a specific window.
+   * During drag mode: full mouse events are received.
+   * Outside drag mode: window is click-through (ignore mouse events with forward).
+   */
+  setDragMode(instanceId: string, enabled: boolean): void {
+    const win = this.windows.get(instanceId);
+    if (win) {
+      if (enabled) {
+        win.setIgnoreMouseEvents(false);
+      } else {
+        win.setIgnoreMouseEvents(true, { forward: true });
+      }
+    }
   }
 
   /**

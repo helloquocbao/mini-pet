@@ -399,8 +399,14 @@ export class PetManager {
    * "Eats" (trashes) specified files.
    */
   async eatFiles(filePaths: string[]): Promise<{ success: boolean; error?: string }> {
+    console.log('PetManager: eatFiles called with:', filePaths);
     try {
+      if (!filePaths || filePaths.length === 0) {
+        console.warn('PetManager: eatFiles called with empty paths');
+        return { success: true };
+      }
       for (const filePath of filePaths) {
+        console.log(`PetManager: Attempting to trash: ${filePath}`);
         await shell.trashItem(filePath);
         console.log(`PetManager: Eaten (trashed) file: ${filePath}`);
       }
@@ -408,6 +414,16 @@ export class PetManager {
     } catch (err: any) {
       console.error(`PetManager: Failed to eat files:`, err);
       return { success: false, error: err.message };
+    }
+  }
+
+  /**
+   * Enables or disables drag-and-drop mode for a specific pet window.
+   * During drag mode the window stops forwarding mouse events so it can receive drops.
+   */
+  setDragMode(instanceId: string, enabled: boolean): void {
+    if (this.overlayWindow) {
+      this.overlayWindow.setDragMode(instanceId, enabled);
     }
   }
 

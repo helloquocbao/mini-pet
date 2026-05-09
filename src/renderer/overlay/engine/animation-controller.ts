@@ -1,5 +1,5 @@
 /**
- * AnimationController — Điều khiển playback animation.
+ * AnimationController — Controls the playback of pet animations and window movement logic.
  */
 import { AnimationConfig, PetState } from '../../../shared/types/pet.types';
 import { SpriteRenderer } from './sprite-renderer';
@@ -16,11 +16,11 @@ export class AnimationController {
   private scale: number = 1.0;
   private direction: number = 1; // 1: Right, -1: Left
 
-  // Multi-Pet: Target for chasing
+  // Multi-Pet: Targets for the "chasing" behavior
   private targetX: number | null = null;
   private targetY: number | null = null;
 
-  // Tích lũy phần dư để di chuyển mượt ở tốc độ thấp
+  // Accumulates fractional movement to ensure smooth motion at low speeds
   private accumulatedX: number = 0;
 
   public onAnimationEnd?: (nextState: PetState) => void;
@@ -30,17 +30,24 @@ export class AnimationController {
     this.instanceId = instanceId;
   }
 
+  /**
+   * Enables or disables pet autonomous movement.
+   */
   setWalkingEnabled(enabled: boolean): void {
     this.walkingEnabled = enabled;
   }
 
-  /** Cập nhật scale từ bên ngoài */
+  /**
+   * Updates the visual scale of the pet.
+   */
   setScale(scale: number): void {
     this.scale = scale;
     this.draw(); 
   }
 
-  /** Lấy vùng bao của pet trên màn hình */
+  /**
+   * Returns the current screen coordinates and dimensions of the pet window.
+   */
   getRect() {
     return {
       x: window.screenX,
@@ -50,13 +57,17 @@ export class AnimationController {
     };
   }
 
-  /** Đặt mục tiêu đuổi bắt */
+  /**
+   * Sets a target position for the pet to move towards.
+   */
   setTarget(x: number, y: number): void {
     this.targetX = x;
     this.targetY = y;
   }
 
-  /** Play animation cho state cụ thể */
+  /**
+   * Starts playing a specific animation state.
+   */
   play(config: AnimationConfig, scale: number = 1.0): void {
     this.stop();
     this.currentConfig = config;
@@ -69,7 +80,9 @@ export class AnimationController {
     this.loop();
   }
 
-  /** Stop animation */
+  /**
+   * Stops the current animation playback.
+   */
   stop(): void {
     if (this.animationId) {
       cancelAnimationFrame(this.animationId);
@@ -78,14 +91,17 @@ export class AnimationController {
     this.isPlaying = false;
   }
 
+  /**
+   * Renders the current frame to the canvas.
+   */
   private draw(): void {
     if (!this.currentConfig) return;
     
     let activeRow = this.currentConfig.row;
     let shouldFlip = this.direction === -1;
 
-    // Hỗ trợ dùng dòng 2 và 3 cho hướng trái/phải (không dùng flip)
-    // NGƯỢC LẠI: Dòng 3 (index 2) cho Left, Dòng 2 (index 1) cho Right
+    // Logic for 9-row spritesheets: 
+    // Uses Row 2 (index 1) for Right and Row 3 (index 2) for Left movement.
     if (activeRow === 1 || activeRow === 2) {
       activeRow = this.direction === -1 ? 2 : 1;
       shouldFlip = false; 
@@ -94,7 +110,9 @@ export class AnimationController {
     this.renderer.drawFrame(this.currentFrame, activeRow, this.scale, shouldFlip);
   }
 
-  /** Internal animation loop */
+  /**
+   * Main animation and movement loop.
+   */
   private loop = (): void => {
     if (!this.isPlaying || !this.currentConfig) return;
 
@@ -104,7 +122,7 @@ export class AnimationController {
     if (now - this.lastFrameTime >= msPerFrame) {
       this.lastFrameTime = now;
 
-      // 1. Logic di chuyển cửa sổ (nếu đang walk/run)
+      // 1. Handle window movement for walking/running states
       const isMovementAnimation = this.currentConfig.canMove || [1, 2].includes(this.currentConfig.row);
       
       if (isMovementAnimation && this.isPlaying && this.walkingEnabled) {
@@ -115,7 +133,7 @@ export class AnimationController {
           const screenW = window.screen.availWidth;
           const winW = window.innerWidth;
 
-          // Multi-Pet: Đuổi theo mục tiêu nếu có
+          // Multi-Pet: Handle chasing behavior
           if (this.targetX !== null) {
             const centerX = winX + winW / 2;
             if (this.targetX < centerX - 50) {
@@ -123,11 +141,11 @@ export class AnimationController {
             } else if (this.targetX > centerX + 50) {
               this.direction = 1;
             } else {
-              // Đã đến gần mục tiêu
+              // Target reached
               this.targetX = null;
             }
           } else {
-            // Đi ngẫu nhiên: KIỂM TRA BIÊN MÀN HÌNH ĐỂ QUAY ĐẦU
+            // Random walk: Flip direction at screen boundaries
             if ((this.direction === -1 && winX <= 0) || 
                 (this.direction === 1 && winX + winW >= screenW)) {
               this.direction *= -1;
@@ -135,7 +153,7 @@ export class AnimationController {
             }
           }
 
-          // Tích lũy phần dư (speed * direction)
+          // Accumulate displacement for sub-pixel precision movement
           this.accumulatedX += speed * this.direction;
 
           const actualMoveX = Math.trunc(this.accumulatedX);
@@ -147,10 +165,10 @@ export class AnimationController {
         }
       }
 
-      // 2. Render
+      // 2. Render frame
       this.draw();
 
-      // 3. Advance frame
+      // 3. Advance to the next frame
       if (this.currentConfig.loop) {
         this.currentFrame = (this.currentFrame + 1) % this.currentConfig.frameCount;
       } else {

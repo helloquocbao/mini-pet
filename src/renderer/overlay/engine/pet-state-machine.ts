@@ -1,5 +1,5 @@
 /**
- * PetStateMachine — FSM cho pet behavior.
+ * PetStateMachine — Finite State Machine for managing pet behaviors and transitions.
  */
 import { PetState, AnimationConfig } from '../../../shared/types/pet.types';
 import { DEFAULT_ANIMATIONS } from '../../../shared/constants';
@@ -15,22 +15,17 @@ export class PetStateMachine {
   private currentState: PetState = 'idle';
   private controller: AnimationController;
   private animations: Record<string, AnimationConfig>;
-
-  getState(): PetState {
-    return this.currentState;
-  }
   private timerId: ReturnType<typeof setTimeout> | null = null;
   private scale: number = 1.0;
+  private enableWalking: boolean = true;
 
-  // State rules cho Pet behavior
+  // Behavioral rules for automatic state transitions
   private rules: Partial<Record<PetState, StateRule>> = {
     idle: { minDuration: 15000, maxDuration: 40000, transitions: ['sleep', 'walk'] },
     walk: { minDuration: 5000, maxDuration: 20000, transitions: ['idle'] },
-    run: { minDuration: 5000, maxDuration: 10000, transitions: ['idle'] }, // Chạy mệt rồi thì nghỉ (5-10 giây)
+    run: { minDuration: 5000, maxDuration: 10000, transitions: ['idle'] }, 
     sleep: { minDuration: 20000, maxDuration: 60000, transitions: ['idle'] },
   };
-
-  private enableWalking: boolean = true;
 
   constructor(controller: AnimationController, scale: number = 1.0, enableWalking: boolean = true) {
     this.controller = controller;
@@ -40,57 +35,87 @@ export class PetStateMachine {
     this.controller.onAnimationEnd = nextState => this.transitionTo(nextState);
   }
 
+  /**
+   * Returns the current state of the pet.
+   */
+  getState(): PetState {
+    return this.currentState;
+  }
+
+  /**
+   * Enables or disables autonomous walking behavior.
+   */
   setWalkingEnabled(enabled: boolean): void {
     this.enableWalking = enabled;
     this.controller.setWalkingEnabled(enabled);
 
-    // Nếu đang đi mà bị tắt, chuyển ngay về đứng im
+    // If walking is disabled while currently in a walk state, immediately return to idle.
     if (!enabled && this.currentState === 'walk') {
       this.transitionTo('idle');
     }
   }
 
+  /**
+   * Returns whether walking is currently enabled.
+   */
   getWalkingEnabled(): boolean {
     return this.enableWalking;
   }
 
+  /**
+   * Updates the visual scale of the pet.
+   */
   setScale(scale: number): void {
     this.scale = scale;
     this.controller.setScale(scale);
   }
 
+  /**
+   * Updates the animation configurations (for custom pets).
+   */
   updateAnimations(newAnimations: any): void {
     this.animations = { ...(DEFAULT_ANIMATIONS as any), ...newAnimations };
   }
 
-  /** Kích hoạt trạng thái thông báo */
+  /**
+   * Triggers a 'notify' state (usually for alerts).
+   */
   notify(): void {
     this.forceState('notify');
   }
 
-  /** Chế độ báo động (nhảy liên tục) */
+  /**
+   * Starts the alarm mode (infinite jumping/notifying).
+   */
   startAlarm(): void {
     if (this.timerId) {
       clearTimeout(this.timerId);
       this.timerId = null;
     }
-    // Ép Pet vào trạng thái vẫy tay liên tục
+    // Forces the pet into a looping 'notify' animation
     const config = { ...this.animations['notify'], loop: true };
     this.controller.play(config, this.scale);
     this.currentState = 'notify';
   }
 
-  /** Dừng báo động */
+  /**
+   * Stops the alarm mode and returns to idle.
+   */
   stopAlarm(): void {
     this.transitionTo('idle');
   }
 
-  /** Start FSM */
+  /**
+   * Starts the state machine.
+   */
   start(): void {
     this.transitionTo('idle');
   }
 
-  /** Chuyển state */
+  /**
+   * Transitions the pet to a new state.
+   * @param state The target PetState.
+   */
   transitionTo(state: PetState): void {
     if (this.timerId) {
       clearTimeout(this.timerId);
@@ -104,30 +129,34 @@ export class PetStateMachine {
       this.controller.play(config, this.scale);
     }
 
-    // Schedule next transition if rule exists and it's a looping state
+    // Schedule the next transition if rules exist for the current state
     const rule = this.rules[state];
     if (rule && config?.loop) {
       this.scheduleTransition(rule);
     }
   }
 
-  /** Force state */
+  /**
+   * Forces an immediate transition to a specific state.
+   */
   forceState(state: PetState): void {
     this.transitionTo(state);
   }
 
-  /** Schedule next auto-transition */
+  /**
+   * Schedules an automatic transition to a next possible state.
+   */
   private scheduleTransition(rule: StateRule): void {
     const duration = Math.random() * (rule.maxDuration - rule.minDuration) + rule.minDuration;
     this.timerId = setTimeout(() => {
       let possibleTransitions = rule.transitions;
 
-      // Lọc bỏ trạng thái 'walk' nếu không được phép
+      // Filter out 'walk' state if walking is disabled
       if (!this.enableWalking) {
         possibleTransitions = possibleTransitions.filter(s => s !== 'walk');
       }
 
-      // Nếu không còn trạng thái nào khả thi, về idle
+      // Select a random next state from possible transitions
       const nextState =
         possibleTransitions.length > 0
           ? possibleTransitions[Math.floor(Math.random() * possibleTransitions.length)]
@@ -137,11 +166,16 @@ export class PetStateMachine {
     }, duration);
   }
 
+  /**
+   * Returns the window rectangle from the controller.
+   */
   getRect() {
     return this.controller.getRect();
   }
 
-  /** Cleanup */
+  /**
+   * Cleans up resources used by the state machine.
+   */
   destroy(): void {
     if (this.timerId) clearTimeout(this.timerId);
     this.controller.stop();

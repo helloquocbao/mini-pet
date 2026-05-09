@@ -96,6 +96,11 @@ export function registerIpcHandlers(petManager: PetManager): void {
     win?.setIgnoreMouseEvents(ignore, options);
   });
 
+  /** Enables drag-and-drop mode (disables mouse pass-through temporarily) */
+  ipcMain.on('window:set-drag-mode', (_event, instanceId: string, enabled: boolean) => {
+    petManager.setDragMode(instanceId, enabled);
+  });
+
   /** Moves a window by a specific delta */
   ipcMain.on('window:move', (_event, deltaX: number, deltaY: number) => {
     const win = BrowserWindow.fromWebContents(_event.sender);
@@ -160,6 +165,7 @@ export function registerIpcHandlers(petManager: PetManager): void {
 
   /** Trashes specified files ("eating" them) */
   ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, filePaths: string[]) => {
+    console.log('IPC: Received file:eat request for:', filePaths);
     return petManager.eatFiles(filePaths);
   });
 
@@ -168,5 +174,10 @@ export function registerIpcHandlers(petManager: PetManager): void {
     BrowserWindow.getAllWindows().forEach(win => {
       win.webContents.send('pet:someone-speaking');
     });
+  });
+
+  /** Debug log from renderer */
+  ipcMain.on('debug:log', (_event, message: string) => {
+    console.log(`[RENDERER DEBUG] ${message}`);
   });
 }

@@ -8,6 +8,7 @@ export interface ElectronAPI {
   importPet: () => Promise<any[]>;
   deletePet: (slug: string) => Promise<any[]>;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
+  setDragMode: (instanceId: string, enabled: boolean) => void;
   moveWindow: (deltaX: number, deltaY: number) => void;
   resizeWindow: (width: number, height: number, anchorBottom?: boolean) => void;
   openSettings: () => void;

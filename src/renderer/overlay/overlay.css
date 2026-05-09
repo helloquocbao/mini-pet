@@ -1,8 +1,10 @@
-/* CRITICAL: Mọi background PHẢI transparent */
+/* CRITICAL: All backgrounds must be transparent */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  /* Suppress default browser drag visuals on all elements */
+  -webkit-user-drag: none;
 }
 
 html,
@@ -15,14 +17,21 @@ body {
   -webkit-app-region: no-drag;
 }
 
+/* Drag-over state: show a subtle highlight while a file is being dragged over */
+body.drag-active {
+  /* No visual change needed — pet animation handles the feedback */
+}
+
 #pet-canvas {
   position: absolute;
-  bottom: 0; 
+  bottom: 0;
   left: 50%;
   transform: translateX(-50%);
   display: block;
   cursor: pointer;
   z-index: 10;
+  /* Prevent canvas from showing a default drag ghost */
+  -webkit-user-drag: none;
 }
 
 /* --- Speech Bubble (Bong bóng lời thoại) --- */

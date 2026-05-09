@@ -12,7 +12,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setActivePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_SET_ACTIVE, slug),
   importPet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_IMPORT),
   deletePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_DELETE, slug),
-  eatFile: (paths: string[]) => ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths),
+  eatFile: (paths: string[]) => {
+    ipcRenderer.send('debug:log', 'Preload: eatFile called with ' + paths.length + ' paths');
+    return ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths);
+  },
   
   // Multi-Pet
   getInstanceConfig: (id: string) => ipcRenderer.invoke('pet:get-instance-config', id),
@@ -45,6 +48,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Window control
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) =>
     ipcRenderer.send(IPC_CHANNELS.WINDOW_SET_IGNORE_MOUSE, ignore, options),
+  setDragMode: (instanceId: string, enabled: boolean) =>
+    ipcRenderer.send('window:set-drag-mode', instanceId, enabled),
   moveWindow: (deltaX: number, deltaY: number) => ipcRenderer.send('window:move', deltaX, deltaY),
   resizeWindow: (width: number, height: number) => ipcRenderer.send('window:resize', width, height),
   savePosition: (instanceId: string, x: number, y: number) => ipcRenderer.send('window:save-position', instanceId, x, y),
@@ -55,7 +60,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.on(IPC_CHANNELS.SETTINGS_UPDATE, (_event, data) => callback(data)),
 
   // File utils
-  getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  getPathForFile: (file: File) => {
+    const path = webUtils.getPathForFile(file);
+    ipcRenderer.send('debug:log', 'Preload: getPathForFile resolved to: ' + path);
+    return path;
+  },
 
   // Notifications (listen)
   onNotification: (callback: (payload: unknown) => void) =>

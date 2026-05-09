@@ -139,10 +139,6 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   let startX = 0;
   let startY = 0;
 
-  canvas.addEventListener('mouseenter', () => {
-    window.electronAPI.setIgnoreMouseEvents(false);
-  });
-
   canvas.addEventListener('mousedown', e => {
     if (e.button === 0) {
       isDragging = true;
@@ -153,6 +149,8 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     }
   });
 
+  let lastIgnoreState = true;
+
   window.addEventListener('mousemove', e => {
     if (isDragging) {
       const deltaX = e.screenX - startX;
@@ -161,6 +159,25 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       startX = e.screenX;
       startY = e.screenY;
       window.electronAPI.moveWindow(deltaX, deltaY);
+      return;
+    }
+
+    const rect = canvas.getBoundingClientRect();
+    const isOverCanvas = (
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom
+    );
+
+    if (isOverCanvas && lastIgnoreState) {
+      window.electronAPI.setIgnoreMouseEvents(false);
+      lastIgnoreState = false;
+      // Send debug log to main
+      window.electronAPI.eatFile([]); // Dummy call just to trigger the IPC log if needed, or use a better way
+    } else if (!isOverCanvas && !lastIgnoreState) {
+      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+      lastIgnoreState = true;
     }
   });
 
@@ -219,45 +236,82 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     window.electronAPI.openSettings();
   });
 
-  // --- File "Eating" (Drag & Drop Triggers) ---
-  canvas.addEventListener('dragover', e => {
+  /**
+   * Drag-and-drop file eating handlers.
+   * These work because mousemove (above) proactively disables ignore-mouse-events
+   * when the cursor enters the canvas area, allowing dragover/drop to be received.
+   */
+  const handleDragEnter = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    stateMachine.forceState('jump'); // Excited reaction to food
-  });
+    // Ensure window is interactive
+    window.electronAPI.setIgnoreMouseEvents(false);
+    stateMachine.forceState('jump');
+  };
 
-  canvas.addEventListener('dragleave', () => {
-    stateMachine.transitionTo('idle');
-  });
+  const handleDragOver = (e: DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Use 'copy' effect to avoid showing the OS "move" icon with filename
+    if (e.dataTransfer) {
+      e.dataTransfer.dropEffect = 'copy';
+    }
+    // Proactively keep interactive mode
+    window.electronAPI.setIgnoreMouseEvents(false);
+  };
 
-  canvas.addEventListener('drop', async e => {
+  const handleDragLeave = (e: DragEvent) => {
+    // Restore click-through if cursor truly left the window
+    if (e.clientX <= 0 || e.clientY <= 0 ||
+        e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+      stateMachine.transitionTo('idle');
+    }
+  };
+
+  const handleDrop = async (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     const files = e.dataTransfer?.files;
-    if (files && files.length > 0) {
-      const t = translations[currentLanguage];
-      const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
+    
+    // Restore click-through mode after drop
+    window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
 
-      stateMachine.forceState('eat'); // Play eating animation
-      showSpeech(pickRandom(t.eating));
+    if (!files || files.length === 0) {
+      stateMachine.transitionTo('idle');
+      return;
+    }
 
-      const allPaths: string[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        const filePath = window.electronAPI.getPathForFile(file);
-        if (filePath) {
-          allPaths.push(filePath);
-        }
+    const t = translations[currentLanguage];
+    const pickRandom = (opt: string | string[]) => Array.isArray(opt) ? opt[Math.floor(Math.random() * opt.length)] : opt;
+
+    stateMachine.forceState('eat');
+    showSpeech(pickRandom(t.eating));
+
+    const allPaths: string[] = [];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      let filePath = window.electronAPI.getPathForFile(file);
+      if (!filePath && (file as any).path) {
+        filePath = (file as any).path;
       }
-
-      if (allPaths.length > 0) {
-        await window.electronAPI.eatFile(allPaths);
+      if (filePath) {
+        allPaths.push(filePath);
       }
+    }
+
+    if (allPaths.length > 0) {
+      await window.electronAPI.eatFile(allPaths);
     } else {
       stateMachine.transitionTo('idle');
     }
-  });
+  };
+
+  window.addEventListener('dragenter', handleDragEnter);
+  window.addEventListener('dragover', handleDragOver);
+  window.addEventListener('dragleave', handleDragLeave);
+  window.addEventListener('drop', handleDrop);
 }
 
 /**
