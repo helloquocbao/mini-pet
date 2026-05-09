@@ -11,6 +11,8 @@ let speechTimeout: NodeJS.Timeout | null = null;
 let currentLanguage: Language = 'en';
 let instanceId: string | null = null;
 let lastGlobalSpeechTime = 0;
+let isExternalDragging = false;
+let lastIgnoreState = true;
 
 /**
  * Initializes the overlay pet instance.
@@ -149,8 +151,6 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     }
   });
 
-  let lastIgnoreState = true;
-
   window.addEventListener('mousemove', e => {
     if (isDragging) {
       const deltaX = e.screenX - startX;
@@ -161,22 +161,8 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
       window.electronAPI.moveWindow(deltaX, deltaY);
       return;
     }
-
-    const rect = canvas.getBoundingClientRect();
-    const isOverCanvas = (
-      e.clientX >= rect.left &&
-      e.clientX <= rect.right &&
-      e.clientY >= rect.top &&
-      e.clientY <= rect.bottom
-    );
-
-    if (isOverCanvas && lastIgnoreState) {
-      window.electronAPI.setIgnoreMouseEvents(false);
-      lastIgnoreState = false;
-    } else if (!isOverCanvas && !lastIgnoreState) {
-      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
-      lastIgnoreState = true;
-    }
+    // mousemove only used for drag-window logic now.
+    // click-through is managed by mouseenter/mouseleave below.
   });
 
   window.addEventListener('mouseup', () => {
@@ -234,15 +220,32 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     window.electronAPI.openSettings();
   });
 
+  // --- Click-through management via mouseenter/mouseleave ---
+  // Using mouseenter/mouseleave instead of mousemove so that OS-level
+  // drag events (from Finder/Explorer) are ALWAYS received by the window.
+  // When setIgnoreMouseEvents(true, { forward: true }) is active, OS drag
+  // events are NOT forwarded — so we must ensure the window is interactive
+  // whenever there's any chance a drag might arrive.
+  window.addEventListener('mouseleave', () => {
+    if (!isDragging && !isExternalDragging) {
+      window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+      lastIgnoreState = true;
+    }
+  });
+
+  window.addEventListener('mouseenter', () => {
+    window.electronAPI.setIgnoreMouseEvents(false);
+    lastIgnoreState = false;
+  });
+
   /**
    * Drag-and-drop file eating handlers.
-   * These work because mousemove (above) proactively disables ignore-mouse-events
-   * when the cursor enters the canvas area, allowing dragover/drop to be received.
    */
   const handleDragEnter = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Ensure window is interactive
+    isExternalDragging = true;
+    lastIgnoreState = false;
     window.electronAPI.setIgnoreMouseEvents(false);
     stateMachine.forceState('jump');
   };
@@ -250,19 +253,18 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   const handleDragOver = (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    // Use 'copy' effect to avoid showing the OS "move" icon with filename
     if (e.dataTransfer) {
       e.dataTransfer.dropEffect = 'copy';
     }
-    // Proactively keep interactive mode
-    window.electronAPI.setIgnoreMouseEvents(false);
   };
 
   const handleDragLeave = (e: DragEvent) => {
-    // Restore click-through if cursor truly left the window
+    // Only restore click-through if cursor truly left the window bounds
     if (e.clientX <= 0 || e.clientY <= 0 ||
         e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+      isExternalDragging = false;
       window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
+      lastIgnoreState = true;
       stateMachine.transitionTo('idle');
     }
   };
@@ -270,11 +272,9 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
   const handleDrop = async (e: DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    isExternalDragging = false;
 
     const files = e.dataTransfer?.files;
-    
-    // Restore click-through mode after drop
-    window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
 
     if (!files || files.length === 0) {
       stateMachine.transitionTo('idle');
@@ -287,22 +287,33 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     stateMachine.forceState('eat');
     showSpeech(pickRandom(t.eating));
 
-    const allPaths: string[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      let filePath = window.electronAPI.getPathForFile(file);
-      if (!filePath && (file as any).path) {
-        filePath = (file as any).path;
+    try {
+      const allPaths: string[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        let filePath = window.electronAPI.getPathForFile(file);
+        if (!filePath && (file as any).path) {
+          filePath = (file as any).path;
+        }
+        if (filePath) {
+          allPaths.push(filePath);
+        }
       }
-      if (filePath) {
-        allPaths.push(filePath);
-      }
-    }
 
-    if (allPaths.length > 0) {
-      await window.electronAPI.eatFile(allPaths);
-    } else {
-      stateMachine.transitionTo('idle');
+      if (allPaths.length > 0) {
+        const result: any = await window.electronAPI.eatFile(allPaths);
+        if (result && !result.success) {
+          showSpeech(pickRandom(t.hello));
+        }
+      }
+    } catch (err) {
+      console.error('Overlay: Failed to eat file:', err);
+    } finally {
+      // Do NOT force click-through here — mouseleave handles it naturally
+      // when the cursor leaves, keeping the window ready for another drag.
+      setTimeout(() => {
+        stateMachine.transitionTo('idle');
+      }, 1000);
     }
   };
 
