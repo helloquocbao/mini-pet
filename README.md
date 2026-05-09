@@ -7,9 +7,9 @@ A delightful desktop companion that lives on your screen, helps you stay focused
 ## 🌟 Key Features
 
 - **Interactive Companions**: Multiple pet instances can live on your screen simultaneously.
+- **Custom Pet Import**: Easily import your own custom characters! Just provide a spritesheet and a simple JSON config to bring your own art to life.
 - **File Eating System**: Drag and drop files or folders onto your pet to move them to the Trash/Recycle Bin.
 - **Pomodoro Timer**: Stay productive with a built-in focus timer that communicates through your pet.
-- **Custom Pets Support**: Easily import your own spritesheets and animations via simple JSON configurations.
 - **Stay-on-Top**: Your pets stay visible above other windows without interfering with your work.
 - **Smart Click-Through**: Pets are normally click-through so you can interact with apps behind them, but they "wake up" when you hover over them.
 
@@ -62,6 +62,9 @@ MiniPet supports custom animations!
 1. Create a folder in `src/assets/default-pets/`.
 2. Add a `spritesheet.png` and a `pet.json` defining the animation frames.
 3. Restart the app to see your new friend!
+
+## ⚖️ Disclaimer
+This application only provides tools; we do not own and are not responsible for content/images uploaded by users or linked from external sources.
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
