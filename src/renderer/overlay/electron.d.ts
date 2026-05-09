@@ -39,6 +39,10 @@ export interface ElectronAPI {
   onPetSay: (cb: (text: string) => void) => void;
   eatFile: (paths: string[]) => Promise<{ success: boolean; error?: string }>;
   getPathForFile: (file: File) => string;
+
+  // --- Speech synchronization ---
+  notifySpeaking: () => void;
+  onSomeoneSpeaking: (cb: () => void) => void;
 }
 
 declare global {

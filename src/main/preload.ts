@@ -63,4 +63,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // Intelligence
   onPetSay: (cb: (text: string) => void) => ipcRenderer.on(IPC_CHANNELS.PET_SAY, (_event, text) => cb(text)),
+  
+  // Speech synchronization
+  notifySpeaking: () => ipcRenderer.send('pet:speaking'),
+  onSomeoneSpeaking: (cb: () => void) => ipcRenderer.on('pet:someone-speaking', () => cb()),
 });

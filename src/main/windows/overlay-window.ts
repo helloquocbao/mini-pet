@@ -46,6 +46,9 @@ export class OverlayWindow {
       },
     });
 
+    // Đảm bảo pet luôn nổi lên trên cùng, kể cả khi mở trình duyệt web hay app full screen (đặc biệt trên Windows)
+    win.setAlwaysOnTop(true, 'screen-saver');
+
     // Click-through: Bỏ mặc định để có thể nhận event Drag & Drop
     // win.setIgnoreMouseEvents(true, { forward: true });
 

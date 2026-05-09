@@ -174,15 +174,28 @@ export class PetManager {
 
     // Xử lý khởi động cùng hệ thống (Launch at Startup)
     if (newSettings.launchAtStartup !== undefined) {
-      if (app.isPackaged) {
-        app.setLoginItemSettings({
-          openAtLogin: newSettings.launchAtStartup,
-          // Trên Mac, tốt nhất không truyền path để Electron tự nhận diện bundle
-          path: process.platform === 'win32' ? app.getPath('exe') : undefined,
-        });
-      } else {
-        console.warn('PetManager: Launch at Startup is only supported in packaged builds.');
+      let shouldOpenAtLogin = newSettings.launchAtStartup;
+
+      // Trên macOS dev mode, không hỗ trợ truyền args nên sẽ mở nhầm default Electron
+      if (!app.isPackaged && process.platform === 'darwin') {
+        if (shouldOpenAtLogin) {
+          console.warn('PetManager: Launch at Startup is not supported in development on macOS.');
+          shouldOpenAtLogin = false;
+          this.settings.launchAtStartup = false;
+          await this.saveSettings();
+        }
       }
+
+      const loginSettings: any = {
+        openAtLogin: shouldOpenAtLogin,
+        path: process.platform === 'win32' ? app.getPath('exe') : undefined,
+      };
+
+      if (process.platform === 'win32' && !app.isPackaged) {
+        loginSettings.args = [app.getAppPath()];
+      }
+
+      app.setLoginItemSettings(loginSettings);
     }
 
     // Nếu thay đổi scale tổng thể, áp dụng cho tất cả pet đang hoạt động
@@ -221,20 +234,66 @@ export class PetManager {
     }
   }
 
-  /** Nhập thêm Pet mới từ thư mục bên ngoài */
+  /** Nhập thêm Pet mới từ thư mục hoặc file ZIP */
   async importPet(sourcePath: string): Promise<PetListItem[]> {
+    let tempDir = '';
+    const isZip = sourcePath.toLowerCase().endsWith('.zip');
+    
     try {
-      const manifestPath = path.join(sourcePath, 'pet.json');
+      let extractPath = sourcePath;
+
+      if (isZip) {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const AdmZip = require('adm-zip');
+        const zip = new AdmZip(sourcePath);
+        tempDir = path.join(app.getPath('temp'), `minipet-import-${Date.now()}`);
+        await fs.mkdir(tempDir, { recursive: true });
+        
+        // Giải nén
+        zip.extractAllTo(tempDir, true);
+        
+        // Tìm thư mục chứa pet.json bên trong ZIP
+        const findPetJsonDir = async (dir: string): Promise<string | null> => {
+           const entries = await fs.readdir(dir, { withFileTypes: true });
+           if (entries.some(e => e.name === 'pet.json' && !e.isDirectory())) {
+              return dir;
+           }
+           for (const entry of entries) {
+              if (entry.isDirectory()) {
+                 const found = await findPetJsonDir(path.join(dir, entry.name));
+                 if (found) return found;
+              }
+           }
+           return null;
+        };
+
+        const petJsonDir = await findPetJsonDir(tempDir);
+        if (!petJsonDir) {
+           throw new Error('pet.json not found in the ZIP archive.');
+        }
+        extractPath = petJsonDir;
+      }
+
+      const manifestPath = path.join(extractPath, 'pet.json');
       await fs.access(manifestPath);
 
       const manifestData = await fs.readFile(manifestPath, 'utf8');
       const manifest = JSON.parse(manifestData);
-      const slug = manifest.slug || path.basename(sourcePath);
+      
+      let slug = manifest.slug || path.basename(extractPath);
+      
+      // Đảm bảo tính duy nhất của slug (chống ghi đè khi vô tình trùng tên folder)
+      const originalSlug = slug;
+      let counter = 1;
+      while (this.pets.some(p => p.manifest.slug === slug)) {
+         slug = `${originalSlug}-${counter}`;
+         counter++;
+      }
       
       const targetPath = path.join(this.petsDir, slug);
       
       // Copy toàn bộ thư mục vào kho Pet của app
-      await fs.cp(sourcePath, targetPath, { recursive: true });
+      await fs.cp(extractPath, targetPath, { recursive: true });
       console.log(`PetManager: Imported pet ${slug} to ${targetPath}`);
 
       // Scan lại danh sách Pet
@@ -243,6 +302,11 @@ export class PetManager {
     } catch (err) {
       console.error('PetManager: Import failed:', err);
       throw err;
+    } finally {
+      if (isZip && tempDir) {
+        // Dọn dẹp thư mục tạm
+        await fs.rm(tempDir, { recursive: true, force: true }).catch(() => {});
+      }
     }
   }
 

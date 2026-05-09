@@ -12,12 +12,22 @@ export function registerIpcHandlers(petManager: PetManager): void {
 
   ipcMain.handle('pet:import', async () => {
     const result = await dialog.showOpenDialog({
-      properties: ['openDirectory'],
-      title: 'Select Pet Folder (must contain pet.json)',
+      properties: ['openFile', 'openDirectory'],
+      filters: [
+        { name: 'MiniPet Files', extensions: ['zip', 'json'] },
+        { name: 'All Files', extensions: ['*'] }
+      ],
+      title: 'Select Pet ZIP file, pet.json, OR Pet Folder',
     });
 
     if (!result.canceled && result.filePaths.length > 0) {
-      return await petManager.importPet(result.filePaths[0]);
+      const filePath = result.filePaths[0];
+      // Nếu chọn file pet.json, lấy thư mục chứa nó
+      if (filePath.toLowerCase().endsWith('.json')) {
+        return await petManager.importPet(require('path').dirname(filePath));
+      }
+      // filePath có thể là đường dẫn tới thư mục hoặc tới file .zip
+      return await petManager.importPet(filePath);
     }
     return null;
   });
@@ -133,5 +143,11 @@ export function registerIpcHandlers(petManager: PetManager): void {
   ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, filePaths: string[]) => {
     console.log('IPC: Received file:eat request for:', filePaths);
     return petManager.eatFiles(filePaths);
+  });
+
+  ipcMain.on('pet:speaking', () => {
+    BrowserWindow.getAllWindows().forEach(win => {
+      win.webContents.send('pet:someone-speaking');
+    });
   });
 }

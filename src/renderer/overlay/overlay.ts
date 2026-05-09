@@ -10,6 +10,7 @@ let isSpeechVisible = false;
 let speechTimeout: any = null;
 let currentLanguage: Language = 'en';
 let instanceId: string | null = null;
+let lastGlobalSpeechTime = 0;
 
 async function init(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
@@ -90,7 +91,9 @@ async function init(): Promise<void> {
   window.electronAPI.onPomoTick((state: any) => {
     if (state.finished) {
       const t = translations[currentLanguage];
-      showSpeech(state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
+      // Do main process đã đổi phiên (toggle isWorkSession) ngay khi hết giờ,
+      // nên nếu state hiện tại đang là nghỉ ngơi (!state.isWorkSession) thì có nghĩa là vừa học xong.
+      showSpeech(!state.isWorkSession ? t.pomoFinishedWork : t.pomoFinishedBreak, 30000);
     }
   });
 
@@ -115,6 +118,10 @@ async function init(): Promise<void> {
   // --- Intelligence ---
   window.electronAPI.onPetSay((text: string) => {
     showSpeech(text);
+  });
+
+  window.electronAPI.onSomeoneSpeaking(() => {
+    lastGlobalSpeechTime = Date.now();
   });
 
   setupMouseInteraction(canvas, stateMachine);
@@ -277,6 +284,9 @@ function showSpeech(text: string, duration: number = 4000): void {
   isSpeechVisible = true;
   syncWindowSize();
 
+  // Khi bắt đầu nói, thông báo cho các pet khác giữ im lặng
+  window.electronAPI.notifySpeaking();
+
   const safeScale = Number(currentScale) || 1.0;
   const winWidth = Math.ceil(PETDEX_SPRITE.FRAME_WIDTH * safeScale);
 
@@ -314,7 +324,10 @@ function getRandomPingSpeech(): string {
 
 function setupRandomSpeech(stateMachine: PetStateMachine): void {
   setInterval(() => {
-    if (!isSpeechVisible && !isAlarming && Math.random() < 0.1) {
+    // Chỉ nói chuyện vu vơ nếu không có pet nào đã nói trong vòng 10 giây qua
+    const timeSinceLastSpeech = Date.now() - lastGlobalSpeechTime;
+    
+    if (!isSpeechVisible && !isAlarming && timeSinceLastSpeech > 10000 && Math.random() < 0.1) {
       const state = stateMachine.getState();
       const t = translations[currentLanguage];
       
