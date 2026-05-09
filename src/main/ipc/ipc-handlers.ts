@@ -165,8 +165,8 @@ export function registerIpcHandlers(petManager: PetManager): void {
 
   /** Trashes specified files ("eating" them) */
   ipcMain.handle(IPC_CHANNELS.FILE_EAT, async (_event, filePaths: string[]) => {
-    console.log('IPC: Received file:eat request for:', filePaths);
-    return petManager.eatFiles(filePaths);
+    if (!filePaths || filePaths.length === 0) return { success: true };
+    return await petManager.eatFiles(filePaths);
   });
 
   /** Synchronizes speech between multiple pet instances */

@@ -399,16 +399,13 @@ export class PetManager {
    * "Eats" (trashes) specified files.
    */
   async eatFiles(filePaths: string[]): Promise<{ success: boolean; error?: string }> {
-    console.log('PetManager: eatFiles called with:', filePaths);
     try {
       if (!filePaths || filePaths.length === 0) {
         console.warn('PetManager: eatFiles called with empty paths');
         return { success: true };
       }
       for (const filePath of filePaths) {
-        console.log(`PetManager: Attempting to trash: ${filePath}`);
         await shell.trashItem(filePath);
-        console.log(`PetManager: Eaten (trashed) file: ${filePath}`);
       }
       return { success: true };
     } catch (err: any) {

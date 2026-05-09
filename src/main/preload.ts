@@ -13,7 +13,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   importPet: () => ipcRenderer.invoke(IPC_CHANNELS.PET_IMPORT),
   deletePet: (slug: string) => ipcRenderer.invoke(IPC_CHANNELS.PET_DELETE, slug),
   eatFile: (paths: string[]) => {
-    ipcRenderer.send('debug:log', 'Preload: eatFile called with ' + paths.length + ' paths');
     return ipcRenderer.invoke(IPC_CHANNELS.FILE_EAT, paths);
   },
   
@@ -61,9 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   // File utils
   getPathForFile: (file: File) => {
-    const path = webUtils.getPathForFile(file);
-    ipcRenderer.send('debug:log', 'Preload: getPathForFile resolved to: ' + path);
-    return path;
+    return webUtils.getPathForFile(file);
   },
 
   // Notifications (listen)

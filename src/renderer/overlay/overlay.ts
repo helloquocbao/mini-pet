@@ -173,8 +173,6 @@ function setupMouseInteraction(canvas: HTMLCanvasElement, stateMachine: PetState
     if (isOverCanvas && lastIgnoreState) {
       window.electronAPI.setIgnoreMouseEvents(false);
       lastIgnoreState = false;
-      // Send debug log to main
-      window.electronAPI.eatFile([]); // Dummy call just to trigger the IPC log if needed, or use a better way
     } else if (!isOverCanvas && !lastIgnoreState) {
       window.electronAPI.setIgnoreMouseEvents(true, { forward: true });
       lastIgnoreState = true;

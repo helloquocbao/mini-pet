@@ -23,6 +23,15 @@ if (process.platform === 'darwin') {
   app.dock?.hide();
 }
 
+// Suppress console logs in production/packaged builds
+if (app.isPackaged) {
+  console.log = () => {};
+  console.debug = () => {};
+  console.info = () => {};
+  console.warn = () => {};
+  console.error = () => {};
+}
+
 let overlayWindow: OverlayWindow;
 let settingsWindow: SettingsWindow;
 let systemTray: SystemTray;
