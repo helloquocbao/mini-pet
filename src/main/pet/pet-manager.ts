@@ -198,26 +198,22 @@ export class PetManager {
 
     // Handle "Launch at Startup" logic
     if (newSettings.launchAtStartup !== undefined) {
-      let shouldOpenAtLogin = newSettings.launchAtStartup;
-
-      // macOS dev mode doesn't support passing arguments correctly for startup items
-      if (!app.isPackaged && process.platform === 'darwin') {
-        if (shouldOpenAtLogin) {
-          console.warn('PetManager: Launch at Startup is not supported in development on macOS.');
-          shouldOpenAtLogin = false;
-          this.settings.launchAtStartup = false;
-          await this.saveSettings();
-        }
-      }
+      const shouldOpenAtLogin = newSettings.launchAtStartup;
 
       const loginSettings: Electron.Settings = {
         openAtLogin: shouldOpenAtLogin,
-        path: process.platform === 'win32' ? app.getPath('exe') : undefined,
       };
 
-      if (process.platform === 'win32' && !app.isPackaged) {
+      if (!app.isPackaged) {
+        // In development mode, we must provide the Electron binary path and the app path as an argument.
+        // This prevents Electron from showing the default "About" screen on startup.
+        loginSettings.path = app.getPath('exe');
         loginSettings.args = [app.getAppPath()];
+      } else if (process.platform === 'win32') {
+        // On Windows packaged, specify the executable path.
+        loginSettings.path = app.getPath('exe');
       }
+      // On macOS packaged, omitting 'path' allows Electron to default to the .app bundle correctly.
 
       app.setLoginItemSettings(loginSettings);
     }
