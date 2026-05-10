@@ -18,6 +18,7 @@ const config: ForgeConfig = {
       './src/assets/default-pets',
       './src/assets/icons'
     ],
+    osxUniversal: {}
   },
   rebuildConfig: {},
   makers: [
