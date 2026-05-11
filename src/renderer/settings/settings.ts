@@ -168,7 +168,16 @@ function populateForm(settings: UserSettings): void {
     scaleValue.textContent = `${(settings.scale || 1.0).toFixed(1)}x`;
   }
   if (walkingToggle) walkingToggle.checked = settings.enableWalking !== false;
-  if (startupToggle) startupToggle.checked = settings.launchAtStartup || false;
+  
+  if (startupToggle) {
+    // Hide Launch at Startup on macOS as it's unsupported/problematic
+    if (navigator.userAgent.indexOf('Mac') !== -1) {
+      const item = startupToggle.closest('.setting-item') as HTMLElement;
+      if (item) item.style.display = 'none';
+    } else {
+      startupToggle.checked = settings.launchAtStartup || false;
+    }
+  }
 }
 
 /**
